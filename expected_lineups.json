@@ -1,0 +1,769 @@
+{
+  "Argentina": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Emiliano Martínez",
+      "Nahuel Molina",
+      "Cristian Romero",
+      "Lisandro Martínez",
+      "Nicolás Tagliafico",
+      "Alexis Mac Allister",
+      "Enzo Fernández",
+      "Rodrigo De Paul",
+      "Lionel Messi",
+      "Julián Alvarez",
+      "Giuliano Simeone"
+    ]
+  },
+  "Australia": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Alessandro Circati",
+      "Jordan Bos",
+      "Cristian Volpato",
+      "Mohamed Touré",
+      "Lucas Herrington",
+      "Harry Souttar",
+      "Aiden O'Neill",
+      "Cammy Devlin",
+      "Mathew Ryan",
+      "Cameron Burgess",
+      "Connor Metcalfe"
+    ]
+  },
+  "Belgium": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Jérémy Doku",
+      "Amadou Onana",
+      "Matias Fernandez-Pardo",
+      "Youri Tielemans",
+      "Charles De Ketelaere",
+      "Zeno Debast",
+      "Mike Penders",
+      "Diego Moreira",
+      "Maxim De Cuyper",
+      "Arthur Theate",
+      "Thibaut Courtois"
+    ]
+  },
+  "Brazil": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Vinicius Junior",
+      "Matheus Cunha",
+      "Bruno Guimarães",
+      "Raphinha",
+      "Rayan",
+      "Marquinhos",
+      "Luiz Henrique",
+      "Roger Ibañez",
+      "Alisson",
+      "Neymar",
+      "Casemiro"
+    ]
+  },
+  "Canada": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Alphonso Davies",
+      "Jonathan David",
+      "Ismaël Koné",
+      "Promise David",
+      "Tajon Buchanan",
+      "Alistair Johnston",
+      "Moïse Bombito",
+      "Alfie Jones",
+      "Stephen Eustaquio",
+      "Ali Ahmed",
+      "Dayne St. Clair"
+    ]
+  },
+  "England": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Jude Bellingham",
+      "Declan Rice",
+      "Bukayo Saka",
+      "Elliot Anderson",
+      "Marc Guéhi",
+      "Nico O'Reilly",
+      "Eberechi Eze",
+      "Anthony Gordon",
+      "Reece James",
+      "Harry Kane",
+      "Jarell Quansah"
+    ]
+  },
+  "France": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Kylian Mbappé",
+      "Michael Olise",
+      "Désiré Doué",
+      "William Saliba",
+      "Ousmane Dembélé",
+      "Dayot Upamecano",
+      "Aurélien Tchouaméni",
+      "Jules Koundé",
+      "Maxence Lacroix",
+      "Jean-Philippe Mateta",
+      "Mike Maignan"
+    ]
+  },
+  "Germany": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Jamal Musiala",
+      "Florian Wirtz",
+      "Aleksandar Pavlovic",
+      "Nico Schlotterbeck",
+      "Kai Havertz",
+      "Nathaniel Brown",
+      "Jamie Leweling",
+      "Maximilian Beier",
+      "Joshua Kimmich",
+      "Jonathan Tah",
+      "Assan Ouédraogo"
+    ]
+  },
+  "Japan": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Takefusa Kubo",
+      "Hiroki Ito",
+      "Ritsu Doan",
+      "Ayase Ueda",
+      "Tsuyoshi Watanabe",
+      "Daichi Kamada",
+      "Keito Nakamura",
+      "Keisuke Goto",
+      "Ko Itakura",
+      "Kento Shiogai",
+      "Wataru Endo"
+    ]
+  },
+  "Mexico": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Julián Quiñones",
+      "Johan Vásquez",
+      "Érik Lira",
+      "Brian Gutiérrez",
+      "César Montes",
+      "Roberto Alvarado",
+      "Raúl Rangel",
+      "Álvaro Fidalgo",
+      "César Huerta",
+      "Raúl Jiménez",
+      "Jesús Gallardo"
+    ]
+  },
+  "Morocco": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Achraf Hakimi",
+      "Ayyoub Bouaddi",
+      "Ismael Saibari",
+      "Bilal El Khannouss",
+      "Brahim Díaz",
+      "Neil El Aynaoui",
+      "Samir El Mourabet",
+      "Noussair Mazraoui",
+      "Nayef Aguerd",
+      "Gessime Yassine",
+      "Azzedine Ounahi"
+    ]
+  },
+  "Netherlands": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Ryan Gravenberch",
+      "Cody Gakpo",
+      "Micky van de Ven",
+      "Tijjani Reijnders",
+      "Donyell Malen",
+      "Bart Verbruggen",
+      "Jorrel Hato",
+      "Frenkie de Jong",
+      "Mats Wieffer",
+      "Denzel Dumfries",
+      "Lutsharel Geertruida"
+    ]
+  },
+  "Portugal": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Diogo Costa",
+      "Rúben Dias",
+      "Gonçalo Inácio",
+      "Nuno Mendes",
+      "João Cancelo",
+      "Nélson Semedo",
+      "Vitinha",
+      "Bruno Fernandes",
+      "Gonçalo Guedes",
+      "Pedro Neto",
+      "Cristiano Ronaldo"
+    ]
+  },
+  "Senegal": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Edouard Mendy",
+      "Krépin Diatta",
+      "Kalidou Koulibaly",
+      "Moussa Niakhaté",
+      "Idrissa Gueye",
+      "Pape Gueye",
+      "Sadio Mané",
+      "Habib Diarra",
+      "Nicolas Jackson",
+      "Assane Diao"
+    ]
+  },
+  "South Korea": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Kang-in Lee",
+      "Min-jae Kim",
+      "Heung-min Son",
+      "Hyeon-gyu Oh",
+      "Jens Castrop",
+      "In-beom Hwang",
+      "Young-woo Seol",
+      "Hee-chan Hwang",
+      "Hyun-jun Yang",
+      "Jun-ho Bae",
+      "Han-beom Lee"
+    ]
+  },
+  "Spain": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Lamine Yamal",
+      "Pedri",
+      "Pau Cubarsí",
+      "Marc Cucurella",
+      "Rodri",
+      "Nico Williams",
+      "Marc Pubill",
+      "Fabián Ruiz",
+      "Yéremy Pino",
+      "Mikel Merino",
+      "Mikel Oyarzabal"
+    ]
+  },
+  "United States": {
+    "source": "ESPN (squad minus projected bench)",
+    "starters": [
+      "Matt Freese",
+      "Chris Richards",
+      "Tim Ream",
+      "Sergiño Dest",
+      "Joe Scally",
+      "Tyler Adams",
+      "Weston McKennie",
+      "Timothy Weah",
+      "Christian Pulisic",
+      "Álex Zendejas",
+      "Folarin Balogun"
+    ]
+  },
+  "Algeria": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Zidane",
+      "Belghali",
+      "Belaid",
+      "Bensebaini",
+      "Ait-Nouri",
+      "Zerrouki",
+      "Boudaoui",
+      "Mahrez",
+      "Aouar",
+      "Chaibi",
+      "Gouiri"
+    ]
+  },
+  "Saudi Arabia": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Al-Aqidi",
+      "Boushal",
+      "Tambakti",
+      "Al-Amri",
+      "Al-Harbi",
+      "Kanno",
+      "Al-Khaibari",
+      "N. Al-Dawsari",
+      "Mandash",
+      "Al-Buraikan",
+      "S. Al-Dawsari"
+    ]
+  },
+  "Austria": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "A. Schlager",
+      "Laimer",
+      "Lienhart",
+      "Alaba",
+      "Mwene",
+      "X. Schlager",
+      "Seiwald",
+      "Wimmer",
+      "Baumgartner",
+      "Sabitzer",
+      "Arnautovic"
+    ]
+  },
+  "Bosnia Herzegovina": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Vasilj",
+      "Dedic",
+      "Katic",
+      "Muharemovic",
+      "Kolasinac",
+      "Bajraktarevic",
+      "Sunjic",
+      "Tahirovic",
+      "Memic",
+      "Demirovic",
+      "Dzeko"
+    ]
+  },
+  "Cape Verde": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Voziha",
+      "Moreira",
+      "Lopes",
+      "Borges",
+      "Lopes Cabral",
+      "Lenini",
+      "Duarte",
+      "Rodrigues",
+      "Monteiro",
+      "Cabral",
+      "Livramento"
+    ]
+  },
+  "Colombia": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Montero",
+      "Munoz",
+      "Sanchez",
+      "Mina",
+      "Mojica",
+      "Lerma",
+      "Rios",
+      "Arias",
+      "James",
+      "Diaz",
+      "Suarez"
+    ]
+  },
+  "Curacao": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Room",
+      "Sambo",
+      "Van Ejma",
+      "Obispo",
+      "Floranus",
+      "J. Bacuna",
+      "Comenancia",
+      "L. Bacuna",
+      "Chong",
+      "Locadia",
+      "Gorré"
+    ]
+  },
+  "Croatia": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Livakovic",
+      "Stanisic",
+      "Sutalo",
+      "Caleta-Car",
+      "Gvardiol",
+      "Sucic",
+      "Modric",
+      "Pasalic",
+      "Kramaric",
+      "Perisic",
+      "Budimir"
+    ]
+  },
+  "Czechia": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Hornicek",
+      "Chaloupek",
+      "Hranac",
+      "Krejci",
+      "Zeleny",
+      "Soucek",
+      "Darida",
+      "Coufal",
+      "Provod",
+      "Sulc",
+      "Schick"
+    ]
+  },
+  "DR Congo": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Mpasi",
+      "Wan-Bissaka",
+      "Mbemba",
+      "Tuanzebe",
+      "Masuaku",
+      "Pickel",
+      "Moutoussamy",
+      "Bongonda",
+      "Kakuta",
+      "Wissa",
+      "Bakambu"
+    ]
+  },
+  "Ecuador": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Galindez",
+      "Preciado",
+      "Ordonez",
+      "Pacho",
+      "Hincapié",
+      "Vite",
+      "Caicedo",
+      "Castillo",
+      "Yeboah",
+      "Valencia",
+      "Angulo"
+    ]
+  },
+  "Egypt": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "El Shenawy",
+      "Ibrahim",
+      "Abdelmaguif",
+      "Rabia",
+      "Hany",
+      "Ateya",
+      "Lasheen",
+      "Fatouh",
+      "Ashour",
+      "Salah",
+      "Marmoush"
+    ]
+  },
+  "Ghana": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Asare",
+      "Adjetei",
+      "Seidu",
+      "Oppong",
+      "Yirenkyi",
+      "Sibo",
+      "Partey",
+      "Mensah",
+      "Sulemana",
+      "Semenyo",
+      "Ayew"
+    ]
+  },
+  "Haiti": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Placide",
+      "Arcus",
+      "Adé",
+      "Duverne",
+      "Expérience",
+      "Deedson",
+      "Bellegarde",
+      "Pierre",
+      "Isidor",
+      "Nazon",
+      "Providence"
+    ]
+  },
+  "Iran": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Beyranvand",
+      "Yousefi",
+      "Kanaani",
+      "Khalilzadeh",
+      "Mohammadi",
+      "Ezatolahi",
+      "Ghoddos",
+      "Jahanbakhsh",
+      "Ghayedi",
+      "Mohebi",
+      "Taremi"
+    ]
+  },
+  "Iraq": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Hassan",
+      "Hussein Ali",
+      "Sulaka",
+      "Tahseen",
+      "Doski",
+      "Al-Ammari",
+      "Bayesh",
+      "Ali Jasim",
+      "Iqbal",
+      "Amyn",
+      "Aymen Hussein"
+    ]
+  },
+  "Ivory Coast": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Fofana",
+      "Doué",
+      "Koussonou",
+      "Ndicka",
+      "Konan",
+      "Kessié",
+      "Sangaré",
+      "Oulai",
+      "Pepé",
+      "Guessand",
+      "Diomandé"
+    ]
+  },
+  "Jordan": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Abulaila",
+      "Abu Dahab",
+      "Nasib",
+      "Al-Arab",
+      "Haddad",
+      "Al-Rawahbdeh",
+      "Al-Rashdan",
+      "Abu Taha",
+      "Tamari",
+      "Olwan",
+      "Al-Mardi"
+    ]
+  },
+  "New Zealand": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Crocombe",
+      "Payne",
+      "Bindon",
+      "Boxall",
+      "Cacace",
+      "Samic",
+      "Bell",
+      "McCowatt",
+      "Singh",
+      "Garbett",
+      "Wood"
+    ]
+  },
+  "Norway": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Nyland",
+      "Ryerson",
+      "Heggem",
+      "Ostigard",
+      "Wolfe",
+      "Thorstvedt",
+      "Berg",
+      "Berge",
+      "Sorloth",
+      "Haaland",
+      "Nusa"
+    ]
+  },
+  "Panama": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Mosquera",
+      "Farina",
+      "Andrade",
+      "Cordoba",
+      "Murillo",
+      "Carrasquilla",
+      "Godoy",
+      "Davis",
+      "Barcenas",
+      "Diaz",
+      "Fajardo"
+    ]
+  },
+  "Paraguay": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Gill",
+      "Caceres",
+      "G. Gomez",
+      "Alderete",
+      "Alonso",
+      "D. Gomez",
+      "Ojeda",
+      "Bobadilla",
+      "Almiron",
+      "Enciso",
+      "Avalos"
+    ]
+  },
+  "Qatar": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Barsham",
+      "Al-Oui",
+      "Khoukhi",
+      "Pedro Miguel",
+      "Al-Amin",
+      "Boudiaf",
+      "Fathy",
+      "Laye",
+      "Edmilson Junior",
+      "Almoez Ali",
+      "Afif"
+    ]
+  },
+  "Scotland": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Gordon",
+      "Hickey",
+      "Hanley",
+      "McKenna",
+      "Robertson",
+      "Ferguson",
+      "Gannon-Doak",
+      "Christie",
+      "McTominay",
+      "McGinn",
+      "Adams"
+    ]
+  },
+  "South Africa": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Williams",
+      "Mudau",
+      "Sibisi",
+      "Ndamane",
+      "Modiba",
+      "Sithole",
+      "Mokoena",
+      "Apollis",
+      "Zwane",
+      "Mofokeng",
+      "Foster"
+    ]
+  },
+  "Sweden": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Nordfeldt",
+      "Starfelt",
+      "Lagerbielke",
+      "Lindelof",
+      "Svensson",
+      "Karlstrom",
+      "Ayari",
+      "Gudmundsson",
+      "Nygren",
+      "Elanga",
+      "Gyokeres"
+    ]
+  },
+  "Switzerland": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Kobel",
+      "Widmer",
+      "Akanji",
+      "Elvedi",
+      "Rodriguez",
+      "Freuler",
+      "Xhaka",
+      "Rieder",
+      "Ndoye",
+      "Embolo",
+      "Vargas"
+    ]
+  },
+  "Tunisia": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Dahmen",
+      "Valery",
+      "Bronn",
+      "Talbi",
+      "Abdi",
+      "Gharbi",
+      "Skhiri",
+      "Hannibal",
+      "Achouri",
+      "Mastouri",
+      "Tounekti"
+    ]
+  },
+  "Turkey": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Cakir",
+      "Demiral",
+      "Kabak",
+      "Bardakci",
+      "Celik",
+      "Calhanoglu",
+      "Kokcu",
+      "Ozer",
+      "Guler",
+      "Yildiz",
+      "Akturkoglu"
+    ]
+  },
+  "Uruguay": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Rochet",
+      "Valera",
+      "Gimenez",
+      "Araujo",
+      "Olivera",
+      "Valverde",
+      "Ugarte",
+      "Bentancur",
+      "Canobbio",
+      "Nunez",
+      "Rodriguez"
+    ]
+  },
+  "Uzbekistan": {
+    "source": "Goal.com probable XI",
+    "starters": [
+      "Nematov",
+      "Abdullaev",
+      "Ashurmatov",
+      "Khusanov",
+      "Sayfiev",
+      "Shukurov",
+      "Khamrobekov",
+      "Nasrullaev",
+      "Ganiev",
+      "Urunov",
+      "Shomurodov"
+    ]
+  }
+}

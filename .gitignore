@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Downloaded / cached data (re-created on first run)
+international_results.csv
+squad_lists.pdf
+squad_market_values.json
+squad_xi_values.json
+
+# Generated outputs (re-created each run)
+wc2026_report.html
+wc2026_match_predictions.csv
+wc2026_value_bets.csv
+wc2026_bet_slip.csv
+wc2026_backtest.csv
+
+# Personal betting log
+paper_trade_log.csv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
