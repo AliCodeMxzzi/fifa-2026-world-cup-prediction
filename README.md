@@ -9,7 +9,7 @@ A Python framework for predicting **FIFA World Cup 2026** match outcomes, simula
 ## Table of contents
 
 1. [What this project does](#what-this-project-does)
-2. [Quick start](#quick-start)
+2. [Installation & usage guide](#installation--usage-guide)
 3. [Project folder layout](#project-folder-layout)
 4. [Pipeline (8 steps)](#pipeline-8-steps)
 5. [Model methodology](#model-methodology)
@@ -44,34 +44,220 @@ The tournament format modelled: **12 groups of 4**, top 2 advance plus **8 best 
 
 ---
 
-## Quick start
+## Installation & usage guide
 
-### Requirements
+Complete steps for anyone cloning the repo or downloading the project.
 
-- Python 3.10+
-- Internet on first run (downloads match data, FIFA squad PDF, Transfermarkt values)
+### Prerequisites
 
-```powershell
-pip install numpy pandas scipy requests tqdm tabulate beautifulsoup4 pdfplumber
+| Requirement | Notes |
+|-------------|-------|
+| **Python 3.10+** | Check with `python --version` or `python3 --version` |
+| **pip** | Usually bundled with Python |
+| **Git** | Only needed to clone the repo |
+| **Internet** | Required on first run (downloads match data, FIFA squads, Transfermarkt values) |
+
+Optional but recommended: a virtual environment to keep dependencies isolated.
+
+---
+
+### Step 1 — Get the project
+
+**Option A — Clone from GitHub (recommended)**
+
+```bash
+git clone https://github.com/AliCodeMxzzi/fifa-2026-world-cup-prediction.git
+cd fifa-2026-world-cup-prediction
 ```
 
-### Run the full pipeline
+**Option B — Download ZIP**
 
-On Windows, set UTF-8 encoding to avoid console errors with team names:
+1. Open [github.com/AliCodeMxzzi/fifa-2026-world-cup-prediction](https://github.com/AliCodeMxzzi/fifa-2026-world-cup-prediction)
+2. Click **Code → Download ZIP**
+3. Extract the folder and open a terminal inside it
+
+---
+
+### Step 2 — Create a virtual environment (optional)
+
+**Windows (PowerShell)**
 
 ```powershell
-cd "PATH/TO/THIS/FOLDER"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS / Linux**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+---
+
+### Step 3 — Install dependencies
+
+From the project folder:
+
+```bash
+pip install -r requirements.txt
+```
+
+This installs: `numpy`, `pandas`, `scipy`, `requests`, `tqdm`, `tabulate`, `beautifulsoup4`, `pdfplumber`.
+
+---
+
+### Step 4 — Run the simulator
+
+**Windows (PowerShell)** — set UTF-8 to avoid console errors with team names:
+
+```powershell
 $env:PYTHONIOENCODING='utf-8'
 python wc2026_simulation.py
 ```
 
-Runtime: roughly **2–5 minutes** depending on machine (squad scraping is cached after first run; Monte Carlo is the slowest step).
+**macOS / Linux**
 
-### Open results
+```bash
+PYTHONIOENCODING=utf-8 python3 wc2026_simulation.py
+```
 
-1. **Dashboard:** `wc2026_report.html` (open in any browser)
-2. **Bets for next 3 days:** `wc2026_bet_slip.csv`
-3. **All match odds:** `wc2026_match_predictions.csv`
+**Expected runtime:** ~2–5 minutes on first run (downloads + scraping). Later runs are faster (~1–3 min) because data is cached locally.
+
+**What you will see:** 8 progress steps in the terminal:
+
+```
+[1/8] Loading international match data …
+[2/8] Backtesting model on 2018 & 2022 group stages …
+[3/8] Computing Elo ratings …
+[4/8] Building squad strength …
+[5/8] Initialising Poisson match engine …
+[6/8] Predicting upcoming World Cup matches …
+[7/8] Running 10,000 Monte Carlo simulations …
+[8/8] Building HTML report …
+```
+
+---
+
+### Step 5 — View the results
+
+After a successful run, open these files in the project folder:
+
+| File | What it is |
+|------|------------|
+| **`wc2026_report.html`** | Main dashboard — double-click to open in Chrome, Firefox, Edge, Safari |
+| **`wc2026_bet_slip.csv`** | Actionable BET / LEAN picks for the next 3 days |
+| **`wc2026_match_predictions.csv`** | Win/draw/loss probabilities for every upcoming fixture |
+| **`wc2026_value_bets.csv`** | Fair odds vs market for all three outcomes per match |
+| **`wc2026_backtest.csv`** | 2018 & 2022 validation results |
+
+> Generated files are listed in `.gitignore` and are **not** in the GitHub repo — you create them locally by running the script.
+
+---
+
+### Step 6 — Add your market prices (for value bets & bet slip)
+
+The repo includes a sample `market_odds.csv`. To compare against **your** prediction-market prices:
+
+1. Open `market_odds.csv` in Excel, Google Sheets, or any text editor
+2. For each match, fill in three prices:
+
+| Column | Example (Polymarket) | Example (decimal odds) |
+|--------|----------------------|-------------------------|
+| `market_home_decimal` | `0.69` (69¢) | `1.45` |
+| `market_draw_decimal` | `0.21` | `4.50` |
+| `market_away_decimal` | `0.11` | `9.00` |
+
+**Price format rules:**
+
+- Values **between 0 and 1** → treated as Polymarket contract prices (e.g. `0.69` = 69%)
+- Values **≥ 1** → treated as decimal odds (e.g. `1.85`)
+
+3. Save the file
+4. Re-run `python wc2026_simulation.py`
+
+Without market prices, you still get match predictions and tournament simulations — but no value bets or bet slip.
+
+---
+
+### Step 7 — Match-day workflow (before placing bets)
+
+Do this **on the day of matches**, ideally 1–2 hours before kickoff:
+
+```
+1. Update market_odds.csv     ← fresh Polymarket / bookmaker prices
+2. (Optional) Edit expected_lineups.json if injuries changed
+3. Run: python wc2026_simulation.py
+4. Open wc2026_bet_slip.csv or the "Bet Slip" section in wc2026_report.html
+5. Check team news / confirmed lineups
+6. Place only BET-tier picks at full stake; LEAN at half or skip
+7. Log each wager in paper_trade_log.csv
+```
+
+**Bet tiers (printed in terminal and bet slip):**
+
+| Tier | Criteria | Suggested stake (100-unit bankroll) |
+|------|----------|-------------------------------------|
+| **BET** | Model ≥ 58% **and** edge ≥ 8% | 2 units (2%) |
+| **LEAN** | Model ≥ 55% **and** edge ≥ 6% | 1 unit (1%) |
+| **SKIP** | Below thresholds | Do not bet |
+
+Max **8 units (8%)** total exposure per calendar day.
+
+---
+
+### Step 8 — Log your bets (track performance)
+
+`paper_trade_log.csv` is created automatically. After each real wager, add a row:
+
+```csv
+date,match,pick,tier,market_price,stake_units,model_prob,edge,result,pnl_units,notes
+2026-06-11,Mexico vs South Africa,Mexico,BET,0.69,2.0,0.7634,0.0802,W,1.45,Mexico won 2-0
+```
+
+- **`result`:** `W` (win), `L` (loss), or `P` (push/refund)
+- **`pnl_units`:** profit/loss in bankroll units (win on Polymarket ≈ `stake × (1/market_price − 1)`)
+
+This file stays on your machine only (not pushed to GitHub).
+
+---
+
+### Re-running & updating data
+
+| When | What to do |
+|------|------------|
+| **Before each matchday** | Update `market_odds.csv`, run the script |
+| **After WC matches finish** | Delete `international_results.csv`, re-run (re-downloads latest results) |
+| **New Transfermarkt values** | Delete `squad_market_values.json` and `squad_xi_values.json`, re-run |
+| **Lineup changes** | Edit `expected_lineups.json`, re-run |
+| **Pull repo updates** | `git pull` then re-run |
+
+---
+
+### One-command cheat sheet
+
+**Windows — full run from scratch**
+
+```powershell
+git clone https://github.com/AliCodeMxzzi/fifa-2026-world-cup-prediction.git
+cd fifa-2026-world-cup-prediction
+pip install -r requirements.txt
+$env:PYTHONIOENCODING='utf-8'
+python wc2026_simulation.py
+start wc2026_report.html
+```
+
+**macOS / Linux**
+
+```bash
+git clone https://github.com/AliCodeMxzzi/fifa-2026-world-cup-prediction.git
+cd fifa-2026-world-cup-prediction
+pip install -r requirements.txt
+PYTHONIOENCODING=utf-8 python3 wc2026_simulation.py
+open wc2026_report.html    # macOS
+# xdg-open wc2026_report.html   # Linux
+```
 
 ---
 
