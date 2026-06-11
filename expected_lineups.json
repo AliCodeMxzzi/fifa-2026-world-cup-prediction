@@ -144,19 +144,36 @@
     ]
   },
   "Mexico": {
-    "source": "ESPN (squad minus projected bench)",
+    "source": "Confirmed XI vs South Africa (Jun 11 2026, 4-1-2-3)",
     "starters": [
-      "Julián Quiñones",
-      "Johan Vásquez",
-      "Érik Lira",
-      "Brian Gutiérrez",
-      "César Montes",
-      "Roberto Alvarado",
       "Raúl Rangel",
+      "César Montes",
+      "Johan Vásquez",
+      "Israel Reyes",
+      "Jesús Gallardo",
+      "Érik Lira",
       "Álvaro Fidalgo",
-      "César Huerta",
+      "Brian Gutiérrez",
       "Raúl Jiménez",
-      "Jesús Gallardo"
+      "Julián Quiñones",
+      "Roberto Alvarado"
+    ],
+    "bench": [
+      "Jorge Sánchez",
+      "Edson Álvarez",
+      "Luis Romo",
+      "Alexis Vega",
+      "Santiago Gimenez",
+      "Carlos Acevedo",
+      "Guillermo Ochoa",
+      "Armando González",
+      "Orbelín Pineda",
+      "Obed Vargas",
+      "Gilberto Mora",
+      "Mateo Chávez",
+      "César Huerta",
+      "Guillermo Martínez",
+      "Luis Chávez"
     ]
   },
   "Morocco": {
@@ -655,19 +672,36 @@
     ]
   },
   "South Africa": {
-    "source": "Goal.com probable XI",
+    "source": "Confirmed XI vs Mexico (Jun 11 2026, 5-3-2)",
     "starters": [
-      "Williams",
-      "Mudau",
-      "Sibisi",
-      "Ndamane",
-      "Modiba",
-      "Sithole",
-      "Mokoena",
-      "Apollis",
-      "Zwane",
-      "Mofokeng",
-      "Foster"
+      "Ronwen Williams",
+      "Aubrey Modiba",
+      "Mbekezeli Mbokazi",
+      "Nkosinathi Sibisi",
+      "Khuliso Mudau",
+      "Ime Okon",
+      "Teboho Mokoena",
+      "Yaya Sithole",
+      "Jayden Adams",
+      "Lyle Foster",
+      "Iqraam Rayners"
+    ],
+    "bench": [
+      "Thabang Matuludi",
+      "Khulumani Ndamane",
+      "Thalente Mbatha",
+      "Oswin Appollis",
+      "Tshepang Moremi",
+      "Relebohile Mofokeng",
+      "Themba Zwane",
+      "Thapelo Maseko",
+      "Sipho Chaine",
+      "Evidence Makgopa",
+      "Samukele Kabini",
+      "Ricardo Goss",
+      "Olwethu Makhanya",
+      "Kamogelo Sebelebele",
+      "Bradley Cross"
     ]
   },
   "Sweden": {
