@@ -1,5 +1,7 @@
 # FIFA World Cup 2026 — Prediction & Simulation
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Python framework for predicting **FIFA World Cup 2026** match outcomes, simulating the full 48-team tournament, comparing model probabilities to prediction-market prices, and producing an actionable bet slip. Everything runs from a single script: `wc2026_simulation.py`.
 
 > **Disclaimer:** This project is for research and entertainment. It is **not financial advice**. Prediction markets involve risk of loss. Past backtest performance does not guarantee future results.
@@ -23,6 +25,7 @@ A Python framework for predicting **FIFA World Cup 2026** match outcomes, simula
 13. [Troubleshooting](#troubleshooting)
 14. [Known limitations](#known-limitations)
 15. [Architecture overview](#architecture-overview)
+16. [License & attribution](#license--attribution)
 
 ---
 
@@ -268,6 +271,8 @@ Fifa 2026 World Cup Prediction/
 │
 ├── wc2026_simulation.py      # Main script — entire pipeline (~3,100 lines)
 ├── README.md                 # This file
+├── LICENSE                   # MIT License
+├── requirements.txt          # Python dependencies
 │
 ├── ── INPUT / CACHE DATA ──────────────────────────────────────────
 ├── international_results.csv # ~49k international matches (auto-downloaded)
@@ -763,8 +768,25 @@ Internal flow:
 
 ## License & attribution
 
-- Match data: [Mart Jürisoo / martj42](https://github.com/martj42/international_results)
-- Squad data: FIFA, Transfermarkt (scraped for personal/research use)
-- Lineups: ESPN, Goal.com (curated manually)
+### Software license
 
-Use responsibly. Gamble only what you can afford to lose.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for the full text.
+
+You are free to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of this software, provided the copyright notice and permission notice are included in all copies or substantial portions.
+
+### Third-party data
+
+This repository contains code only. Cached and downloaded data are created locally when you run the script and are **not** covered by this license:
+
+| Data | Source | Notes |
+|------|--------|-------|
+| International match results | [Mart Jürisoo / martj42](https://github.com/martj42/international_results) | Auto-downloaded on first run |
+| Squad lists | [FIFA](https://www.fifa.com) | Official PDF |
+| Market values | [Transfermarkt](https://www.transfermarkt.com) | Scraped for research; respect their terms |
+| Expected lineups | ESPN, Goal.com | Curated manually |
+
+Use scraped and third-party data responsibly and for personal/research purposes only.
+
+### Disclaimer
+
+This project is for research and entertainment. It is **not financial advice**. Prediction markets involve risk of loss. Gamble only what you can afford to lose.
