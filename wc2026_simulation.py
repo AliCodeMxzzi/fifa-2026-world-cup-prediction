@@ -1549,7 +1549,7 @@ def _build_outcome_odds(label: str, model_prob: float,
 
     if implied is not None and market_decimal and market_decimal > 1.0:
         edge = model_prob - implied
-        outcome.market_decimal = market_decimal
+        outcome.market_decimal = round(market_decimal, 2)
         outcome.market_implied = implied
         outcome.edge = edge
         outcome.is_value = edge >= VALUE_EDGE_THRESHOLD
@@ -2417,6 +2417,19 @@ def _esc(text: object) -> str:
     return html_module.escape(str(text))
 
 
+def _format_odds(decimal_odds: float) -> str:
+    """Human-readable decimal odds (2 dp, fewer digits when large)."""
+    if decimal_odds >= 100:
+        return f"{decimal_odds:.0f}"
+    if decimal_odds >= 10:
+        return f"{decimal_odds:.1f}"
+    return f"{decimal_odds:.2f}"
+
+
+def _match_key(date: str, home: str, away: str) -> Tuple[str, str, str]:
+    return date, home, away
+
+
 def _pct_bar(pct: float, color: str = "#3b82f6") -> str:
     width = min(max(pct, 0), 100)
     return (f'<div class="bar-track"><div class="bar-fill" '
@@ -2428,18 +2441,47 @@ def _prob_cells(outcome: OutcomeOdds) -> str:
     edge = (f'<span class="edge-tag">+{outcome.edge * 100:.1f}% edge</span>'
             if outcome.is_value and outcome.edge else "")
     market = ""
-    if outcome.market_decimal:
-        market = (f'<div class="market-line">Market {_esc(outcome.market_decimal)}'
-                  f' ({outcome.market_implied * 100:.1f}%)</div>')
+    if outcome.market_decimal and outcome.market_implied is not None:
+        market = (
+            f'<div class="market-line">Market {_format_odds(outcome.market_decimal)}'
+            f' <span class="implied">({outcome.market_implied * 100:.1f}% implied)</span></div>'
+        )
     return (
         f'<td{value_cls}>'
         f'<div class="prob-main">{outcome.model_prob * 100:.1f}%</div>'
-        f'<div class="odds-line">Fair {_esc(outcome.fair_decimal)} '
+        f'<div class="odds-line">Fair {_format_odds(outcome.fair_decimal)} '
         f'({outcome.fair_american:+d})</div>'
         f'<div class="odds-line subtle">Min EV+5%: '
-        f'{_esc(outcome.min_decimal_5pct_edge)}</div>'
+        f'{_format_odds(outcome.min_decimal_5pct_edge)}</div>'
         f'{market}{edge}</td>'
     )
+
+
+def _match_card_footer(pred: FixturePrediction,
+                       analysis: MatchValueAnalysis) -> str:
+    """Footer distinguishing model favorite from best market value."""
+    pick_cls = "pick-strong" if pred.pick_prob >= 0.55 else "pick-lean"
+    footer = (
+        f'<div class="model-pick {pick_cls}">'
+        f'<span class="pick-label">Most likely outcome</span>'
+        f'<strong>{_esc(pred.pick)}</strong> '
+        f'<span class="pick-pct">({pred.pick_prob * 100:.1f}%)</span></div>'
+    )
+    if analysis.best_value and analysis.best_value.edge:
+        bv = analysis.best_value
+        differs = bv.label != pred.pick
+        diff_note = (
+            '<div class="pick-diff-note">Not the model favorite — edge vs market only</div>'
+            if differs else ""
+        )
+        footer += (
+            f'<div class="value-pick-line">'
+            f'<span class="pick-label">Value vs market</span>'
+            f'<strong>{_esc(bv.label)}</strong> '
+            f'<span class="value-edge-inline">+{bv.edge * 100:.1f}% edge</span>'
+            f'{diff_note}</div>'
+        )
+    return footer
 
 
 def build_simulation_summary(records: Dict[str, TeamTournamentRecord],
@@ -2542,22 +2584,36 @@ def generate_html_report(
         )
 
     # Value bets highlight
+    pred_lookup = {
+        _match_key(p.date, p.home_team, p.away_team): p for p in predictions
+    }
     value_hits = [
         (a, a.best_value) for a in value_analyses if a.best_value
     ]
+    value_hits.sort(key=lambda x: x[1].edge or 0, reverse=True)
     if value_hits:
         value_section = '<div class="card-grid value-grid">'
         for analysis, bet in value_hits:
+            pred = pred_lookup.get(
+                _match_key(analysis.date, analysis.home_team, analysis.away_team))
+            fav_note = ""
+            if pred and pred.pick != bet.label:
+                fav_note = (
+                    f'<div class="value-fav-note">Model favorite: '
+                    f'{_esc(pred.pick)} ({pred.pick_prob * 100:.1f}%)</div>'
+                )
             value_section += (
                 f'<div class="value-card">'
+                f'<div class="value-type">Value vs market</div>'
                 f'<div class="value-date">{_esc(analysis.date)}</div>'
                 f'<div class="value-match">{_esc(analysis.home_team)} vs '
                 f'{_esc(analysis.away_team)}</div>'
                 f'<div class="value-pick">{_esc(bet.label)}</div>'
+                f'{fav_note}'
                 f'<div class="value-stats">Model {bet.model_prob * 100:.1f}% vs '
-                f'Market {bet.market_implied * 100:.1f}%</div>'
+                f'market {bet.market_implied * 100:.1f}% (vig-adjusted)</div>'
                 f'<div class="value-edge">+{bet.edge * 100:.1f}% edge · '
-                f'Fair odds {bet.fair_decimal}</div></div>'
+                f'Fair odds {_format_odds(bet.fair_decimal)}</div></div>'
             )
         value_section += "</div>"
     else:
@@ -2586,7 +2642,6 @@ def generate_html_report(
             neutral_tag = ('<span class="tag neutral">Neutral</span>'
                            if pred.neutral else
                            '<span class="tag home">Home boost</span>')
-            pick_cls = "pick-strong" if pred.pick_prob >= 0.55 else "pick-lean"
 
             match_sections += (
                 f'<div class="match-card">'
@@ -2595,7 +2650,7 @@ def generate_html_report(
                 f'<span class="vs">vs</span> {_esc(pred.away_team)}</span>'
                 f'{neutral_tag}</div>'
                 f'<div class="venue">{venue}</div>'
-                f'<div class="xg-line">xG: {pred.home_xg:.2f} – '
+                f'<div class="xg-line">Expected goals: {pred.home_xg:.2f} – '
                 f'{pred.away_xg:.2f}</div>'
                 f'<table class="mini-odds"><tr>'
                 f'<th>{_esc(pred.home_team)}</th><th>Draw</th>'
@@ -2604,8 +2659,7 @@ def generate_html_report(
                 f'{_prob_cells(analysis.draw)}'
                 f'{_prob_cells(analysis.away)}'
                 f'</tr></table>'
-                f'<div class="model-pick {pick_cls}">Pick: <strong>'
-                f'{_esc(pred.pick)}</strong> ({pred.pick_prob * 100:.1f}%)</div>'
+                f'{_match_card_footer(pred, analysis)}'
                 f'</div>'
             )
         match_sections += "</div>"
@@ -2739,6 +2793,14 @@ h3.date-heading {{
   background: linear-gradient(135deg, #14532d 0%, var(--surface) 100%);
   border: 1px solid #22c55e55; border-radius: 12px; padding: 1rem;
 }}
+.value-type {{
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #86efac; font-weight: 700; margin-bottom: 0.35rem;
+}}
+.value-fav-note {{
+  font-size: 0.78rem; color: var(--muted); margin: 0.25rem 0 0.35rem;
+  font-style: italic;
+}}
 .value-pick {{ font-size: 1.2rem; font-weight: 700; color: var(--green); }}
 .value-edge {{ font-size: 0.85rem; color: #86efac; margin-top: 0.35rem; }}
 .bet-card-strong {{ border-color: #22c55e; background: linear-gradient(135deg, #14532d 0%, var(--surface) 100%); }}
@@ -2762,7 +2824,7 @@ h3.date-heading {{
 .teams {{ font-weight: 600; font-size: 0.95rem; }}
 .vs {{ color: var(--muted); font-weight: 400; }}
 .venue {{ font-size: 0.78rem; color: var(--muted); margin: 0.35rem 0; }}
-.xg-line {{ font-size: 0.8rem; color: var(--purple); margin-bottom: 0.6rem; }}
+.xg-line {{ font-size: 0.8rem; color: var(--muted); margin-bottom: 0.6rem; }}
 .tag {{
   font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px;
   text-transform: uppercase; font-weight: 600;
@@ -2778,18 +2840,38 @@ h3.date-heading {{
 .odds-line {{ color: var(--muted); font-size: 0.72rem; }}
 .odds-line.subtle {{ font-size: 0.68rem; }}
 .market-line {{ color: var(--gold); font-size: 0.72rem; margin-top: 0.15rem; }}
-.value-cell {{ background: #14532d33; }}
+.market-line .implied {{ color: var(--muted); }}
+.value-cell {{ background: #14532d33; border-left: 2px solid var(--green); }}
 .edge-tag {{
   display: inline-block; background: var(--green); color: #052e16;
   font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.35rem;
   border-radius: 4px; margin-top: 0.2rem;
 }}
+.pick-label {{
+  display: block; font-size: 0.65rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.15rem;
+}}
 .model-pick {{
-  margin-top: 0.6rem; font-size: 0.85rem; padding: 0.4rem 0.6rem;
+  margin-top: 0.6rem; font-size: 0.85rem; padding: 0.45rem 0.65rem;
   border-radius: 6px; background: var(--surface2);
 }}
-.pick-strong {{ border-left: 3px solid var(--green); }}
+.pick-strong {{ border-left: 3px solid var(--accent); }}
 .pick-lean {{ border-left: 3px solid var(--gold); }}
+.pick-pct {{ color: var(--muted); font-weight: 500; }}
+.value-pick-line {{
+  margin-top: 0.45rem; font-size: 0.85rem; padding: 0.45rem 0.65rem;
+  border-radius: 6px; background: #14532d44; border-left: 3px solid var(--green);
+}}
+.value-edge-inline {{ color: #86efac; font-weight: 600; }}
+.pick-diff-note {{
+  font-size: 0.72rem; color: #fbbf24; margin-top: 0.25rem; font-style: italic;
+}}
+.legend-box {{
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.82rem;
+  color: var(--muted); margin-bottom: 1rem;
+}}
+.legend-box strong {{ color: var(--text); }}
 .contender-row {{
   display: grid; grid-template-columns: 28px 140px 1fr 60px;
   align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;
@@ -2903,15 +2985,23 @@ h3.date-heading {{
 
 <section id="value">
   <h2>Value Bets vs Market</h2>
+  <div class="legend-box">
+    <strong>Green highlight</strong> = model probability beats vig-adjusted market
+    implied by ≥{VALUE_EDGE_THRESHOLD * 100:.0f}%. This is <em>not</em> always the
+    most likely outcome — check each match card for
+    <strong>Most likely outcome</strong> vs <strong>Value vs market</strong>.
+  </div>
   {value_section}
 </section>
 
 <section id="matches">
   <h2>Match Predictions — Win / Draw / Loss</h2>
-  <p style="color:var(--muted);font-size:0.88rem;margin-bottom:1rem">
-    Fair decimal odds = 1 ÷ model probability. Compare to your prediction market;
-    bet when market odds exceed the <em>Min EV+5%</em> threshold.
-  </p>
+  <div class="legend-box">
+    <strong>Most likely outcome</strong> = highest model win probability.
+    <strong>Value vs market</strong> = best edge vs Polymarket/book prices (may be
+    an underdog). Green cells in the table mark outcomes with ≥{VALUE_EDGE_THRESHOLD * 100:.0f}% edge.
+    Fair odds = 1 ÷ model probability.
+  </div>
   {match_sections}
 </section>
 
