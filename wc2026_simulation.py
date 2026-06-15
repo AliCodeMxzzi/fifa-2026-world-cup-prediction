@@ -21,6 +21,7 @@ Data source (auto-downloaded on first run):
     https://github.com/martj42/international_results
 """
 
+import argparse
 import html as html_module
 import json
 import math
@@ -119,6 +120,16 @@ DATA_URL = (
     "master/results.csv"
 )
 DATA_CACHE = Path("international_results.csv")
+POLYMARKET_GAMMA_URL = "https://gamma-api.polymarket.com"
+DATA_MAX_AGE_HOURS = 4          # auto-refresh match CSV in --live mode if older
+LIVE_REPORT_HTML = Path("wc2026_live_report.html")
+FOTMOB_API_BASE = "https://www.fotmob.com/api/data"
+FIXTURE_SCHEDULE_JSON = Path("wc2026_fixture_schedule.json")
+SCHEDULER_STATE_JSON = Path("wc2026_scheduler_state.json")
+WC2026_FIRST_DATE = date(2026, 6, 11)
+WC2026_LAST_DATE = date(2026, 7, 19)
+PREKICKOFF_MINUTES = 60          # run pipeline this many minutes before kickoff
+LINEUP_FETCH_MAX_HOURS = 3       # try fetching lineups up to 3h before kickoff
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. ACTUAL 2026 WORLD CUP DRAW  (Groups A–L, FIFA seeding order)
@@ -203,6 +214,33 @@ TRANSFERMARKT_NAME_MAP: Dict[str, str] = {
     "Turkiye": "Turkey",
 }
 
+# Polymarket search / question text aliases (API uses different spellings)
+POLYMARKET_SEARCH_NAMES: Dict[str, List[str]] = {
+    "South Korea": ["Korea Republic", "South Korea"],
+    "United States": ["United States", "USA"],
+    "Bosnia Herzegovina": ["Bosnia and Herzegovina", "Bosnia-Herzegovina",
+                           "Bosnia Herzegovina"],
+    "Ivory Coast": ["Ivory Coast", "Côte d'Ivoire", "Cote d'Ivoire"],
+    "Turkey": ["Turkey", "Türkiye", "Turkiye"],
+    "DR Congo": ["DR Congo", "Congo DR", "Democratic Republic of the Congo"],
+    "Cape Verde": ["Cape Verde", "Cabo Verde"],
+    "Curacao": ["Curacao", "Curaçao"],
+}
+
+FOTMOB_TO_CANONICAL: Dict[str, str] = {
+    "Turkiye": "Turkey",
+    "Bosnia and Herzegovina": "Bosnia Herzegovina",
+    "Korea Republic": "South Korea",
+    "USA": "United States",
+    "Curaçao": "Curacao",
+    "Curacao": "Curacao",
+    "Côte d'Ivoire": "Ivory Coast",
+    "Cote d'Ivoire": "Ivory Coast",
+    "Congo DR": "DR Congo",
+    "Democratic Republic of the Congo": "DR Congo",
+    "Cabo Verde": "Cape Verde",
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. ROUND-OF-32 BRACKET STRUCTURE
 #    FIFA's predetermined bracket for the 2026 format.
@@ -245,13 +283,21 @@ R32_TEMPLATE = [
 # 4. DATA LOADING & PREPROCESSING
 # ─────────────────────────────────────────────────────────────────────────────
 
-def download_data() -> pd.DataFrame:
+def download_data(force: bool = False) -> pd.DataFrame:
     """Download (or load cached) international match results."""
-    if DATA_CACHE.exists():
+    stale = False
+    if DATA_CACHE.exists() and not force:
+        age_h = (datetime.now().timestamp() - DATA_CACHE.stat().st_mtime) / 3600
+        stale = age_h > DATA_MAX_AGE_HOURS
+
+    if DATA_CACHE.exists() and not force and not stale:
         print(f"[DATA] Loading cached results from {DATA_CACHE}")
         df = pd.read_csv(DATA_CACHE, parse_dates=["date"])
     else:
-        print(f"[DATA] Downloading from GitHub …")
+        if stale:
+            print(f"[DATA] Cache older than {DATA_MAX_AGE_HOURS}h — refreshing …")
+        else:
+            print("[DATA] Downloading from GitHub …")
         try:
             import requests
             r = requests.get(DATA_URL, timeout=30)
@@ -260,9 +306,13 @@ def download_data() -> pd.DataFrame:
             df = pd.read_csv(DATA_CACHE, parse_dates=["date"])
             print(f"[DATA] Saved {len(df):,} matches to {DATA_CACHE}")
         except Exception as e:
-            print(f"[DATA] Download failed ({e}). Generating synthetic Elo "
-                  "ratings from FIFA rankings.")
-            return pd.DataFrame()
+            if DATA_CACHE.exists():
+                print(f"[DATA] Download failed ({e}); using stale cache.")
+                df = pd.read_csv(DATA_CACHE, parse_dates=["date"])
+            else:
+                print(f"[DATA] Download failed ({e}). Generating synthetic Elo "
+                      "ratings from FIFA rankings.")
+                return pd.DataFrame()
     return df
 
 
@@ -2424,6 +2474,7 @@ def generate_html_report(
         summary: SimulationSummary,
         backtest_results: Optional[Dict[int, BacktestSummary]] = None,
         bet_recommendations: Optional[List[BetRecommendation]] = None,
+        live_mode: bool = False,
         path: Path = REPORT_HTML,
 ) -> Path:
     """Write a self-contained HTML dashboard with all simulation outputs."""
@@ -2437,16 +2488,31 @@ def generate_html_report(
         for o in (a.home, a.draw, a.away)
     )
 
-    # Top contenders
-    top_teams = sorted(ALL_TEAMS,
-                       key=lambda t: records[t].winner / n_sims,
-                       reverse=True)[:15]
-    max_win = records[top_teams[0]].winner / n_sims * 100 if top_teams else 1
+    def _sim_pct(count: int) -> float:
+        return count / n_sims * 100 if n_sims else 0.0
+
+    # Top contenders (by sim wins, or strength rating in live mode)
+    if n_sims:
+        top_teams = sorted(ALL_TEAMS,
+                           key=lambda t: records[t].winner,
+                           reverse=True)[:15]
+        max_win = _sim_pct(records[top_teams[0]].winner) if top_teams else 1
+    else:
+        top_teams = sorted(ALL_TEAMS,
+                           key=lambda t: strength.get_rating(t),
+                           reverse=True)[:15]
+        max_win = strength.get_rating(top_teams[0]) if top_teams else 1
 
     contender_rows = ""
     for i, team in enumerate(top_teams, 1):
-        win_pct = records[team].winner / n_sims * 100
-        bar_w = win_pct / max_win * 100 if max_win else 0
+        if n_sims:
+            win_pct = _sim_pct(records[team].winner)
+            bar_w = win_pct / max_win * 100 if max_win else 0
+            pct_label = f"{win_pct:.2f}%"
+        else:
+            rating = strength.get_rating(team)
+            bar_w = rating / max_win * 100 if max_win else 0
+            pct_label = f"{rating:.0f}"
         host = ' <span class="host-badge">HOST</span>' if team in HOST_NATIONS else ""
         contender_rows += (
             f'<div class="contender-row">'
@@ -2454,7 +2520,7 @@ def generate_html_report(
             f'<span class="team-name">{_esc(team)}{host}</span>'
             f'<div class="bar-track wide"><div class="bar-fill gold" '
             f'style="width:{bar_w:.1f}%"></div></div>'
-            f'<span class="pct-label">{win_pct:.2f}%</span></div>'
+            f'<span class="pct-label">{pct_label}</span></div>'
         )
 
     # Team strength table
@@ -2546,40 +2612,52 @@ def generate_html_report(
 
     # Group probabilities
     group_sections = ""
-    for grp in sorted(GROUPS.keys()):
-        teams = GROUPS[grp]
-        group_sections += f'<div class="group-card"><h4>Group {grp}</h4><table>'
-        group_sections += (
-            "<tr><th>Team</th><th>Advance</th><th>Exit</th><th>R16</th></tr>"
-        )
-        for team in sorted(teams, key=lambda t: records[t].r32 / n_sims,
-                           reverse=True):
-            r = records[team]
-            adv = r.r32 / n_sims * 100
-            ex = r.group_exit / n_sims * 100
-            r16 = r.r16 / n_sims * 100
+    if n_sims:
+        for grp in sorted(GROUPS.keys()):
+            teams = GROUPS[grp]
+            group_sections += f'<div class="group-card"><h4>Group {grp}</h4><table>'
             group_sections += (
-                f"<tr><td>{_esc(team)}</td>"
-                f"<td>{adv:.1f}%</td><td>{ex:.1f}%</td><td>{r16:.1f}%</td></tr>"
+                "<tr><th>Team</th><th>Advance</th><th>Exit</th><th>R16</th></tr>"
             )
-        group_sections += "</table></div>"
+            for team in sorted(teams, key=lambda t: records[t].r32,
+                               reverse=True):
+                r = records[team]
+                adv = _sim_pct(r.r32)
+                ex = _sim_pct(r.group_exit)
+                r16 = _sim_pct(r.r16)
+                group_sections += (
+                    f"<tr><td>{_esc(team)}</td>"
+                    f"<td>{adv:.1f}%</td><td>{ex:.1f}%</td><td>{r16:.1f}%</td></tr>"
+                )
+            group_sections += "</table></div>"
+    else:
+        group_sections = (
+            '<p class="info-box">Group advancement probabilities require a full '
+            'simulation run (<code>python wc2026_simulation.py</code>).</p>'
+        )
 
     # Full tournament table
     team_group = {t: g for g, teams in GROUPS.items() for t in teams}
     tourney_rows = ""
-    for team in sorted(ALL_TEAMS, key=lambda t: records[t].winner / n_sims,
-                       reverse=True):
-        r = records[team]
-        host = ' <span class="host-badge">HOST</span>' if team in HOST_NATIONS else ""
-        tourney_rows += (
-            f"<tr><td>{_esc(team)}{host}</td><td>{team_group[team]}</td>"
-            f"<td>{r.r32 / n_sims * 100:.1f}%</td>"
-            f"<td>{r.r16 / n_sims * 100:.1f}%</td>"
-            f"<td>{r.qf / n_sims * 100:.1f}%</td>"
-            f"<td>{r.sf / n_sims * 100:.1f}%</td>"
-            f"<td>{r.final / n_sims * 100:.1f}%</td>"
-            f"<td><strong>{r.winner / n_sims * 100:.2f}%</strong></td>"
-            f"<td>{strength.get_rating(team):.0f}</td></tr>"
+    if n_sims:
+        for team in sorted(ALL_TEAMS, key=lambda t: records[t].winner,
+                           reverse=True):
+            r = records[team]
+            host = ' <span class="host-badge">HOST</span>' if team in HOST_NATIONS else ""
+            tourney_rows += (
+                f"<tr><td>{_esc(team)}{host}</td><td>{team_group[team]}</td>"
+                f"<td>{_sim_pct(r.r32):.1f}%</td>"
+                f"<td>{_sim_pct(r.r16):.1f}%</td>"
+                f"<td>{_sim_pct(r.qf):.1f}%</td>"
+                f"<td>{_sim_pct(r.sf):.1f}%</td>"
+                f"<td>{_sim_pct(r.final):.1f}%</td>"
+                f"<td><strong>{_sim_pct(r.winner):.2f}%</strong></td>"
+                f"<td>{strength.get_rating(team):.0f}</td></tr>"
+            )
+    else:
+        tourney_rows = (
+            '<tr><td colspan="9" style="color:var(--muted)">'
+            'Run full simulation for tournament distribution.</td></tr>'
         )
 
     backtest_section = (
@@ -2589,6 +2667,16 @@ def generate_html_report(
     )
 
     bet_slip_section = _render_bet_slip_html(bet_recommendations or [])
+
+    live_banner = ""
+    if live_mode:
+        live_banner = (
+            '<div class="info-box" style="margin-bottom:1.25rem;border-color:#22c55e">'
+            '<strong>Live update mode</strong> — Match data and Polymarket odds '
+            f'refreshed at {_esc(generated)}. Tournament Monte Carlo skipped; '
+            'run <code>python wc2026_simulation.py</code> (no flags) for champion odds.'
+            '</div>'
+        )
 
     page = f"""<!DOCTYPE html>
 <html lang="en">
@@ -2754,7 +2842,7 @@ h3.date-heading {{
 </head>
 <body>
 <header class="hero">
-  <h1>FIFA World Cup 2026 — Prediction Report</h1>
+  <h1>FIFA World Cup 2026 — {"Live Prediction Update" if live_mode else "Prediction Report"}</h1>
   <p class="sub">48 Teams · 12 Groups · {summary.n_simulations:,} Monte Carlo Simulations</p>
   <p class="meta">Generated {_esc(generated)} · Model: {_esc(model_description())}</p>
 </header>
@@ -2771,6 +2859,8 @@ h3.date-heading {{
   <a href="#method">Methodology</a>
 </nav>
 <div class="container">
+
+{live_banner}
 
 <section id="summary">
   <h2>Tournament Summary</h2>
@@ -3040,77 +3130,508 @@ def print_value_bet_summary(analyses: List[MatchValueAnalysis],
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 14. MAIN EXECUTION
+# 14. LIVE DATA, LINEUPS & CLI
 # ─────────────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    np.random.seed(RANDOM_SEED)
-    random.seed(RANDOM_SEED)
+def canonical_from_fotmob(name: str) -> str:
+    """Map FotMob team name to our canonical GROUPS name."""
+    if name in ALL_TEAMS:
+        return name
+    mapped = FOTMOB_TO_CANONICAL.get(name, name)
+    if mapped in ALL_TEAMS:
+        return mapped
+    return canonicalise(REVERSE_NAME_MAP.get(mapped, mapped))
 
-    print("╔══════════════════════════════════════════════════════════════╗")
-    print("║      FIFA WORLD CUP 2026 — MONTE CARLO SIMULATOR          ║")
-    print("║      48 Teams • 12 Groups • 10,000 Simulations            ║")
-    print("╚══════════════════════════════════════════════════════════════╝")
 
-    # ── Step 1: Load data ──
-    print("\n[1/8] Loading international match data …")
-    df = download_data()
+def _fotmob_get(url: str, params: Optional[dict] = None) -> Optional[dict]:
+    try:
+        import requests
+        r = requests.get(
+            url, params=params, timeout=20,
+            headers={"User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36")},
+        )
+        r.raise_for_status()
+        return r.json()
+    except Exception as exc:
+        print(f"[FOTMOB] Request failed ({url}): {exc}")
+        return None
 
-    # ── Step 2: Backtest on 2018 & 2022 World Cups ──
-    print("[2/8] Backtesting model on 2018 & 2022 group stages …")
-    backtest_results = run_world_cup_backtests(df)
-    save_backtest_results(backtest_results)
-    print_backtest_report(backtest_results)
 
-    # ── Step 3: Compute historical + form Elo ratings ──
-    print("[3/8] Computing Elo ratings (historical + 12-month form) …")
+def fetch_fotmob_day_matches(day: date) -> List[dict]:
+    """Return World Cup matches on a calendar day from FotMob."""
+    data = _fotmob_get(f"{FOTMOB_API_BASE}/matches",
+                       {"date": day.strftime("%Y%m%d")})
+    if not data:
+        return []
+
+    fixtures: List[dict] = []
+    for league in data.get("leagues", []):
+        if "World Cup" not in (league.get("name") or ""):
+            continue
+        for m in league.get("matches", []):
+            home_raw = m.get("home", {}).get("name", "")
+            away_raw = m.get("away", {}).get("name", "")
+            status = m.get("status", {})
+            utc_time = status.get("utcTime")
+            kickoff = pd.Timestamp(utc_time) if utc_time else None
+            fixtures.append({
+                "match_id": int(m["id"]),
+                "date": day.isoformat(),
+                "home_team": canonical_from_fotmob(home_raw),
+                "away_team": canonical_from_fotmob(away_raw),
+                "home_raw": home_raw,
+                "away_raw": away_raw,
+                "kickoff_utc": kickoff.isoformat() if kickoff else "",
+                "started": bool(status.get("started")),
+                "finished": bool(status.get("finished")),
+                "group": league.get("name", ""),
+            })
+    return fixtures
+
+
+def fetch_fotmob_world_cup_schedule(
+        start: date = WC2026_FIRST_DATE,
+        end: date = WC2026_LAST_DATE,
+) -> List[dict]:
+    """Build full WC schedule with FotMob match IDs and UTC kickoffs."""
+    schedule: List[dict] = []
+    day = start
+    while day <= end:
+        schedule.extend(fetch_fotmob_day_matches(day))
+        day += timedelta(days=1)
+    schedule.sort(key=lambda x: x.get("kickoff_utc", x["date"]))
+    return schedule
+
+
+def save_fixture_schedule(schedule: List[dict],
+                          path: Path = FIXTURE_SCHEDULE_JSON) -> Path:
+    path.write_text(json.dumps(schedule, indent=2), encoding="utf-8")
+    return path
+
+
+def load_fixture_schedule(
+        path: Path = FIXTURE_SCHEDULE_JSON) -> List[dict]:
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def fetch_fotmob_match_lineups(match_id: int) -> Optional[dict]:
+    """Return confirmed starters/bench for both teams from FotMob."""
+    data = _fotmob_get(f"{FOTMOB_API_BASE}/matchDetails",
+                       {"matchId": match_id})
+    if not data:
+        return None
+
+    lineup = data.get("content", {}).get("lineup", {})
+    home = lineup.get("homeTeam", {})
+    away = lineup.get("awayTeam", {})
+    home_starters = home.get("starters") or []
+    away_starters = away.get("starters") or []
+
+    if len(home_starters) < 11 and len(away_starters) < 11:
+        return None
+
+    def _names(players: list, subs: list) -> Tuple[List[str], List[str]]:
+        starters = [p.get("name", "").strip() for p in players
+                    if p.get("name")]
+        bench = [p.get("name", "").strip() for p in (subs or [])
+                 if p.get("name")]
+        return starters[:11], bench
+
+    home_names, home_bench = _names(home_starters, home.get("subs"))
+    away_names, away_bench = _names(away_starters, away.get("subs"))
+
+    if len(home_names) < 11 and len(away_names) < 11:
+        return None
+
+    general = data.get("general", {})
+    home_team = canonical_from_fotmob(
+        general.get("homeTeam", {}).get("name") or home.get("name", ""))
+    away_team = canonical_from_fotmob(
+        general.get("awayTeam", {}).get("name") or away.get("name", ""))
+
+    return {
+        "match_id": match_id,
+        "home_team": home_team,
+        "away_team": away_team,
+        "home": {
+            "starters": home_names,
+            "bench": home_bench,
+            "formation": home.get("formation", ""),
+        },
+        "away": {
+            "starters": away_names,
+            "bench": away_bench,
+            "formation": away.get("formation", ""),
+        },
+        "source": "FotMob confirmed",
+    }
+
+
+def update_expected_lineups_from_fotmob(
+        match_lineups: dict,
+        path: Path = EXPECTED_LINEUPS_JSON,
+) -> List[str]:
+    """Merge FotMob lineups into expected_lineups.json. Returns updated teams."""
+    if not path.exists():
+        data: dict = {}
+    else:
+        data = json.loads(path.read_text(encoding="utf-8"))
+
+    updated: List[str] = []
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+
+    for side in ("home", "away"):
+        team = match_lineups[f"{side}_team"]
+        info = match_lineups[side]
+        starters = info.get("starters", [])
+        if len(starters) < 11:
+            continue
+        data[team] = {
+            "source": f"FotMob confirmed ({ts})",
+            "formation": info.get("formation", ""),
+            "starters": starters,
+            "bench": info.get("bench", []),
+        }
+        updated.append(team)
+
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8")
+    return updated
+
+
+def refresh_lineups_for_upcoming(
+        schedule: Optional[List[dict]] = None,
+        hours_ahead: float = LINEUP_FETCH_MAX_HOURS,
+) -> int:
+    """Fetch FotMob lineups for matches starting within hours_ahead."""
+    if schedule is None:
+        schedule = load_fixture_schedule()
+        if not schedule:
+            print("[FOTMOB] Building fixture schedule …")
+            schedule = fetch_fotmob_world_cup_schedule()
+            save_fixture_schedule(schedule)
+
+    now = pd.Timestamp.now(tz="UTC")
+    updated_matches = 0
+
+    for fix in schedule:
+        if fix.get("finished"):
+            continue
+        kickoff_raw = fix.get("kickoff_utc")
+        if not kickoff_raw:
+            continue
+        kickoff = pd.Timestamp(kickoff_raw)
+        if kickoff.tzinfo is None:
+            kickoff = kickoff.tz_localize("UTC")
+        hours_until = (kickoff - now).total_seconds() / 3600
+        if hours_until < -0.5 or hours_until > hours_ahead:
+            continue
+
+        match_id = int(fix["match_id"])
+        lineups = fetch_fotmob_match_lineups(match_id)
+        if not lineups:
+            print(f"  [FOTMOB] No confirmed XI yet: {fix['home_team']} vs "
+                  f"{fix['away_team']} (id {match_id})")
+            continue
+
+        teams = update_expected_lineups_from_fotmob(lineups)
+        if teams:
+            updated_matches += 1
+            print(f"  [FOTMOB] Updated lineups: {', '.join(teams)} "
+                  f"({fix['home_team']} vs {fix['away_team']})")
+
+    return updated_matches
+
+
+def refresh_lineups_for_match(match_id: int) -> bool:
+    """Fetch and save lineups for a single FotMob match ID."""
+    lineups = fetch_fotmob_match_lineups(match_id)
+    if not lineups:
+        return False
+    teams = update_expected_lineups_from_fotmob(lineups)
+    if teams:
+        print(f"[FOTMOB] Updated: {', '.join(teams)}")
+    return bool(teams)
+
+
+def _polymarket_search_names(team: str) -> List[str]:
+    return POLYMARKET_SEARCH_NAMES.get(team, [team])
+
+
+def _parse_polymarket_prices(raw) -> List[float]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+    return [float(p) for p in raw]
+
+
+def _polymarket_yes_price(market: dict) -> Optional[float]:
+    """Extract live Yes price from a Polymarket binary market."""
+    prices = _parse_polymarket_prices(market.get("outcomePrices"))
+    if not prices:
+        return None
+
+    yes = prices[0]
+    # Skip clearly settled markets
+    if market.get("closed") and (yes >= 0.995 or yes <= 0.005):
+        return None
+
+    bid = market.get("bestBid")
+    ask = market.get("bestAsk")
+    if bid is not None and ask is not None:
+        return (float(bid) + float(ask)) / 2.0
+    if ask is not None and 0.0 < float(ask) < 1.0:
+        return float(ask)
+    if 0.005 < yes < 0.995:
+        return yes
+    return None
+
+
+def _event_matches_fixture(event: dict, home: str, away: str,
+                           match_date: str) -> bool:
+    title = (event.get("title") or "").lower()
+    date_str = match_date  # YYYY-MM-DD
+    home_names = [n.lower() for n in _polymarket_search_names(home)]
+    away_names = [n.lower() for n in _polymarket_search_names(away)]
+    has_home = any(n in title for n in home_names)
+    has_away = any(n in title for n in away_names)
+    if not (has_home and has_away and " vs" in title):
+        return False
+    slug = (event.get("slug") or "")
+    return date_str in slug or date_str.replace("-", "") in slug or (
+        "fifwc" in slug or "fif-" in slug)
+
+
+def fetch_polymarket_fixture_odds(home: str, away: str,
+                                  match_date: str) -> Tuple[
+                                      Optional[float], Optional[float],
+                                      Optional[float]]:
+    """Return (home, draw, away) Polymarket prices for one fixture."""
+    try:
+        import requests
+    except ImportError:
+        return None, None, None
+
+    queries = [
+        f"{home} {away}",
+        f"{_polymarket_search_names(home)[0]} "
+        f"{_polymarket_search_names(away)[0]}",
+    ]
+
+    event = None
+    for q in queries:
+        try:
+            r = requests.get(
+                f"{POLYMARKET_GAMMA_URL}/public-search",
+                params={"q": q},
+                timeout=15,
+            )
+            r.raise_for_status()
+        except Exception:
+            continue
+
+        for ev in r.json().get("events", []):
+            if _event_matches_fixture(ev, home, away, match_date):
+                event = ev
+                break
+        if event:
+            break
+
+    if not event:
+        return None, None, None
+
+    home_p = draw_p = away_p = None
+    home_names = [n.lower() for n in _polymarket_search_names(home)]
+    away_names = [n.lower() for n in _polymarket_search_names(away)]
+
+    for market in event.get("markets", []):
+        q = (market.get("question") or "").lower()
+        price = _polymarket_yes_price(market)
+        if price is None:
+            continue
+        if "draw" in q:
+            draw_p = price
+        elif "win on" in q:
+            if any(n in q for n in home_names):
+                home_p = price
+            elif any(n in q for n in away_names):
+                away_p = price
+
+    return home_p, draw_p, away_p
+
+
+def update_market_odds_from_polymarket(
+        predictions: List[FixturePrediction],
+        horizon_days: int = 7,
+        path: Path = MARKET_ODDS_CSV) -> int:
+    """Fetch live Polymarket prices and update market_odds.csv."""
+    create_market_odds_template(predictions, path)
+    df = pd.read_csv(path)
+    today = date.today()
+    horizon = today + timedelta(days=horizon_days)
+    updated = 0
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    for pred in predictions:
+        match_day = date.fromisoformat(pred.date)
+        if match_day < today or match_day > horizon:
+            continue
+
+        home_p, draw_p, away_p = fetch_polymarket_fixture_odds(
+            pred.home_team, pred.away_team, pred.date)
+        if home_p is None and draw_p is None and away_p is None:
+            continue
+
+        mask = (
+            (df["date"].astype(str) == pred.date)
+            & (df["home_team"] == pred.home_team)
+            & (df["away_team"] == pred.away_team)
+        )
+        if not mask.any():
+            continue
+
+        if home_p is not None:
+            df.loc[mask, "market_home_decimal"] = round(home_p, 4)
+        if draw_p is not None:
+            df.loc[mask, "market_draw_decimal"] = round(draw_p, 4)
+        if away_p is not None:
+            df.loc[mask, "market_away_decimal"] = round(away_p, 4)
+        df.loc[mask, "notes"] = f"Polymarket live {ts}"
+        updated += 1
+        print(f"  [ODDS] {pred.date} {pred.home_team} vs {pred.away_team}: "
+              f"{home_p or '-'} / {draw_p or '-'} / {away_p or '-'}")
+
+    df.to_csv(path, index=False)
+    return updated
+
+
+def build_strength_model(df: pd.DataFrame) -> TeamStrengthModel:
+    """Compute Elo + squad strength from match dataframe."""
     hist_elo = EloSystem()
     form_elo = EloSystem()
     form_start = form_elo_start_date()
 
     if not df.empty:
-        played = df.dropna(subset=["home_score", "away_score"])
-        played_hist = played[(played["date"] >= ELO_START_DATE)
-                             & (played["date"] <= ELO_END_DATE)]
-        played_form = played[(played["date"] >= form_start)
-                             & (played["date"] <= ELO_END_DATE)]
         hist_elo.compute_from_dataframe(df)
         form_elo.compute_from_dataframe(df, start_date=form_start)
-        print(f"       Historical: {len(played_hist):,} matches "
-              f"({ELO_START_DATE}–{ELO_END_DATE}).")
-        print(f"       Form:       {len(played_form):,} matches "
-              f"({form_start}–{ELO_END_DATE}).")
-    else:
-        print("       No historical data available — using FIFA rankings.")
-
     hist_elo.fill_missing_from_rankings(ALL_TEAMS, FIFA_RANKINGS)
     form_elo.fill_missing_from_rankings(ALL_TEAMS, FIFA_RANKINGS)
 
-    # ── Step 4: Squad strength (full squad + starting XI) ──
-    print("[4/8] Building squad strength (full squad + starting XI) …")
     squad_system = SquadStrengthSystem().build(ALL_TEAMS)
-    strength = TeamStrengthModel(hist_elo, form_elo, squad_system)
-    print_elo_ratings(strength, ALL_TEAMS)
+    return TeamStrengthModel(hist_elo, form_elo, squad_system)
 
-    # ── Step 5: Build match engine ──
-    print("\n[5/8] Initialising Poisson match engine …")
+
+def empty_tournament_records() -> Dict[str, TeamTournamentRecord]:
+    return {t: TeamTournamentRecord() for t in ALL_TEAMS}
+
+
+def parse_cli_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="FIFA World Cup 2026 prediction & simulation framework",
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Live mode: refresh match data + Polymarket odds, skip "
+             "backtest & Monte Carlo (~30s)",
+    )
+    parser.add_argument(
+        "--refresh-data",
+        action="store_true",
+        help="Force re-download international_results.csv from GitHub",
+    )
+    parser.add_argument(
+        "--fetch-odds",
+        action="store_true",
+        help="Fetch Polymarket prices into market_odds.csv (next 7 days)",
+    )
+    parser.add_argument(
+        "--fetch-lineups",
+        action="store_true",
+        help="Fetch confirmed lineups from FotMob (matches starting soon)",
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Full pipeline with backtest + 10k Monte Carlo (default)",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = parse_cli_args(argv)
+    live_mode = args.live
+    force_data = args.refresh_data or live_mode
+    fetch_odds = args.fetch_odds or live_mode
+    fetch_lineups = args.fetch_lineups or live_mode
+    full_sim = args.full or (not live_mode and not fetch_lineups)
+
+    np.random.seed(RANDOM_SEED)
+    random.seed(RANDOM_SEED)
+
+    n_steps = 8 if full_sim else 4
+    print("╔══════════════════════════════════════════════════════════════╗")
+    if live_mode:
+        print("║   FIFA WORLD CUP 2026 — LIVE UPDATE MODE                  ║")
+        print("║   Refresh data · Polymarket odds · Match predictions      ║")
+    else:
+        print("║      FIFA WORLD CUP 2026 — MONTE CARLO SIMULATOR          ║")
+        print("║      48 Teams • 12 Groups • 10,000 Simulations            ║")
+    print("╚══════════════════════════════════════════════════════════════╝")
+
+    step = 1
+    print(f"\n[{step}/{n_steps}] Loading international match data …")
+    df = download_data(force=force_data)
+    step += 1
+
+    backtest_results: Optional[Dict[int, BacktestSummary]] = None
+    if full_sim:
+        print(f"[{step}/{n_steps}] Backtesting model on 2018 & 2022 group stages …")
+        backtest_results = run_world_cup_backtests(df)
+        save_backtest_results(backtest_results)
+        print_backtest_report(backtest_results)
+        step += 1
+    else:
+        print("       (Skipping backtest in live mode)")
+
+    print(f"[{step}/{n_steps}] Computing Elo + squad strength …")
+    if fetch_lineups:
+        print("       Fetching confirmed lineups from FotMob …")
+        n_lineups = refresh_lineups_for_upcoming()
+        print(f"       Lineups updated for {n_lineups} match(es)")
+    strength = build_strength_model(df)
+    if full_sim:
+        print_elo_ratings(strength, ALL_TEAMS)
+    step += 1
+
     engine = PoissonMatchEngine(strength)
 
-    # Show a few key matchup previews
-    print("\n  ── Key Opening-Match Previews ──")
-    print_key_matchup(engine, "Mexico", "South Africa")
-    print_key_matchup(engine, "United States", "Paraguay")
-    print_key_matchup(engine, "Canada", "Bosnia Herzegovina")
-    print_key_matchup(engine, "Brazil", "Morocco")
-    print_key_matchup(engine, "France", "Senegal")
-    print_key_matchup(engine, "Argentina", "Algeria")
-    print_key_matchup(engine, "Spain", "Uruguay")
-    print_key_matchup(engine, "England", "Croatia")
+    if full_sim:
+        print(f"\n[{step}/{n_steps}] Initialising Poisson match engine …")
+        print("\n  ── Key Opening-Match Previews ──")
+        print_key_matchup(engine, "Mexico", "South Africa")
+        print_key_matchup(engine, "United States", "Paraguay")
+        print_key_matchup(engine, "Canada", "Bosnia Herzegovina")
+        print_key_matchup(engine, "Brazil", "Morocco")
+        step += 1
 
-    # ── Step 6: Upcoming match predictions (prediction markets) ──
-    print("\n[6/8] Predicting upcoming World Cup matches …")
+    print(f"\n[{step}/{n_steps}] Predicting upcoming World Cup matches …")
     wc_fixtures = load_wc_fixtures(df)
     match_predictions = predict_wc_fixtures(engine, wc_fixtures)
+
+    if fetch_odds:
+        print("       Fetching live Polymarket odds …")
+        n_odds = update_market_odds_from_polymarket(match_predictions)
+        print(f"       Updated {n_odds} fixture(s) in {MARKET_ODDS_CSV}")
 
     had_market = MARKET_ODDS_CSV.exists()
     create_market_odds_template(match_predictions)
@@ -3127,52 +3648,85 @@ if __name__ == "__main__":
     print_match_predictions(match_predictions, strength)
     print_value_bet_summary(value_analyses, had_market)
     print_bet_slip(bet_recommendations)
+    step += 1
 
-    # ── Step 7: Run Monte Carlo ──
-    print(f"\n[7/8] Running {NUM_SIMULATIONS:,} Monte Carlo simulations …")
-    records = run_monte_carlo(engine, NUM_SIMULATIONS)
+    records: Dict[str, TeamTournamentRecord]
+    sim_summary: SimulationSummary
+    if full_sim:
+        print(f"\n[{step}/{n_steps}] Running {NUM_SIMULATIONS:,} "
+              f"Monte Carlo simulations …")
+        records = run_monte_carlo(engine, NUM_SIMULATIONS)
+        print("\n  Generating tournament probability reports …\n")
+        print_group_probabilities(records, NUM_SIMULATIONS)
+        print_tournament_probabilities(records, NUM_SIMULATIONS, strength)
+        print_top_contenders(records, NUM_SIMULATIONS)
+        step += 1
 
-    print("\n  Generating tournament probability reports …\n")
+        played_count = 0
+        if not df.empty:
+            played = df.dropna(subset=["home_score", "away_score"])
+            played = played[(played["date"] >= ELO_START_DATE)
+                            & (played["date"] <= ELO_END_DATE)]
+            played_count = len(played)
+        sim_summary = build_simulation_summary(
+            records, NUM_SIMULATIONS, played_count)
+        report_path = REPORT_HTML
+    else:
+        records = empty_tournament_records()
+        sim_summary = SimulationSummary(
+            champion="— (run full sim)",
+            champion_pct=0.0,
+            finalist="—",
+            finalist_pct=0.0,
+            host_best="—",
+            host_pct=0.0,
+            dark_horse="—",
+            dark_horse_pct=0.0,
+            matches_processed=0,
+            n_simulations=0,
+        )
+        report_path = LIVE_REPORT_HTML
 
-    print_group_probabilities(records, NUM_SIMULATIONS)
-    print_tournament_probabilities(records, NUM_SIMULATIONS, strength)
-    print_top_contenders(records, NUM_SIMULATIONS)
-
-    # ── Step 8: HTML report ──
-    print("\n[8/8] Building HTML report …")
-    played_count = 0
-    if not df.empty:
-        played = df.dropna(subset=["home_score", "away_score"])
-        played = played[(played["date"] >= ELO_START_DATE)
-                        & (played["date"] <= ELO_END_DATE)]
-        played_count = len(played)
-
-    sim_summary = build_simulation_summary(
-        records, NUM_SIMULATIONS, played_count)
-    report_path = generate_html_report(
+    print(f"\n[{step}/{n_steps}] Building HTML report …")
+    generated_path = generate_html_report(
         strength, match_predictions, value_analyses, records, sim_summary,
         backtest_results=backtest_results,
-        bet_recommendations=bet_recommendations)
+        bet_recommendations=bet_recommendations,
+        live_mode=live_mode,
+        path=report_path,
+    )
 
     print("\n" + "=" * 60)
-    print("         SIMULATION SUMMARY")
-    print("=" * 60)
-    print(f"  Most likely champion:  {sim_summary.champion} "
-          f"({sim_summary.champion_pct:.1f}%)")
-    print(f"  Most likely finalist:  {sim_summary.finalist} "
-          f"({sim_summary.finalist_pct:.1f}%)")
-    print(f"  Best host nation:      {sim_summary.host_best} "
-          f"({sim_summary.host_pct:.1f}%)")
-    print(f"  Dark horse:            {sim_summary.dark_horse} "
-          f"({sim_summary.dark_horse_pct:.2f}%)")
+    if full_sim:
+        print("         SIMULATION SUMMARY")
+        print("=" * 60)
+        print(f"  Most likely champion:  {sim_summary.champion} "
+              f"({sim_summary.champion_pct:.1f}%)")
+        print(f"  Most likely finalist:  {sim_summary.finalist} "
+              f"({sim_summary.finalist_pct:.1f}%)")
+    else:
+        print("         LIVE UPDATE COMPLETE")
+        print("=" * 60)
+        print(f"  Updated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("  Tournament sim skipped — use default run for champion odds")
 
     print("\n  ── Output Files ──")
-    print(f"  HTML report:       {report_path.resolve()}")
+    print(f"  HTML report:       {generated_path.resolve()}")
     print(f"  Bet slip:          {BET_SLIP_CSV.resolve()}")
-    print(f"  Trade log:         {PAPER_TRADE_LOG.resolve()}")
-    print(f"  Backtest results:  {BACKTEST_CSV.resolve()}")
     print(f"  Match predictions: {MATCH_PREDICTIONS_CSV.resolve()}")
-    print(f"  Value bets / odds: {VALUE_BETS_CSV.resolve()}")
-    print(f"  Market template:   {MARKET_ODDS_CSV.resolve()}")
+    if full_sim:
+        print(f"  Backtest results:  {BACKTEST_CSV.resolve()}")
     print("=" * 60)
-    print("  Done. Open wc2026_report.html in your browser.")
+    if live_mode:
+        print("  Done. Open wc2026_live_report.html for fresh picks.")
+    else:
+        print("  Done. Open wc2026_report.html in your browser.")
+    return 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 15. MAIN EXECUTION
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    raise SystemExit(main())

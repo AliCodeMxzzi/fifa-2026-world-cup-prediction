@@ -18,6 +18,9 @@ wc2026_match_predictions.csv
 wc2026_value_bets.csv
 wc2026_bet_slip.csv
 wc2026_backtest.csv
+wc2026_live_report.html
+wc2026_fixture_schedule.json
+wc2026_scheduler_state.json
 
 # Personal betting log
 paper_trade_log.csv

@@ -144,36 +144,37 @@
     ]
   },
   "Mexico": {
-    "source": "Confirmed XI vs South Africa (Jun 11 2026, 4-1-2-3)",
+    "source": "FotMob confirmed (2026-06-14 18:28 UTC)",
+    "formation": "4-1-4-1",
     "starters": [
       "Raúl Rangel",
+      "Israel Reyes",
       "César Montes",
       "Johan Vásquez",
-      "Israel Reyes",
       "Jesús Gallardo",
       "Érik Lira",
-      "Álvaro Fidalgo",
+      "Roberto Alvarado",
       "Brian Gutiérrez",
-      "Raúl Jiménez",
+      "Álvaro Fidalgo",
       "Julián Quiñones",
-      "Roberto Alvarado"
+      "Raul Jiménez"
     ],
     "bench": [
-      "Jorge Sánchez",
+      "Gilberto Mora",
+      "Luis Chávez",
       "Edson Álvarez",
-      "Luis Romo",
+      "Armando González",
       "Alexis Vega",
-      "Santiago Gimenez",
       "Carlos Acevedo",
       "Guillermo Ochoa",
-      "Armando González",
-      "Orbelín Pineda",
-      "Obed Vargas",
-      "Gilberto Mora",
+      "Jorge Sánchez",
+      "Luis Romo",
       "Mateo Chávez",
+      "Obed Vargas",
+      "Orbelín Pineda",
       "César Huerta",
       "Guillermo Martínez",
-      "Luis Chávez"
+      "Santiago Giménez"
     ]
   },
   "Morocco": {
@@ -240,19 +241,36 @@
     ]
   },
   "South Korea": {
-    "source": "ESPN (squad minus projected bench)",
+    "source": "Confirmed XI vs Czechia (Jun 11 2026, 3-4-3)",
     "starters": [
-      "Kang-in Lee",
+      "Seung-gyu Kim",
+      "Han-beom Lee",
       "Min-jae Kim",
-      "Heung-min Son",
-      "Hyeon-gyu Oh",
-      "Jens Castrop",
-      "In-beom Hwang",
+      "Tae-seok Lee",
       "Young-woo Seol",
+      "Gi-hyuk Lee",
+      "In-beom Hwang",
+      "Seung-ho Paik",
+      "Jae-sung Lee",
+      "Kang-in Lee",
+      "Heung-min Son"
+    ],
+    "bench": [
+      "Tae-hyeon Kim",
+      "Gue-sung Cho",
       "Hee-chan Hwang",
-      "Hyun-jun Yang",
+      "Bum-keun Song",
+      "Wi-je Cho",
+      "Moon-hwan Kim",
+      "Jin-seob Park",
       "Jun-ho Bae",
-      "Han-beom Lee"
+      "Hyeon-gyu Oh",
+      "Hyun-jun Yang",
+      "Hyeon-woo Jo",
+      "Jens Castrop",
+      "Jin-gyu Kim",
+      "Ji-sung Eom",
+      "Dong-gyeong Lee"
     ]
   },
   "Spain": {
@@ -416,19 +434,36 @@
     ]
   },
   "Czechia": {
-    "source": "Goal.com probable XI",
+    "source": "Confirmed XI vs South Korea (Jun 11 2026, 3-4-3)",
     "starters": [
-      "Hornicek",
-      "Chaloupek",
-      "Hranac",
-      "Krejci",
-      "Zeleny",
-      "Soucek",
-      "Darida",
-      "Coufal",
-      "Provod",
-      "Sulc",
-      "Schick"
+      "Matej Kovar",
+      "Robin Hranac",
+      "Vladimír Coufal",
+      "Stepan Chaloupek",
+      "Ladislav Krejčí",
+      "Jaroslav Zelený",
+      "Lukas Provod",
+      "Tomáš Souček",
+      "Alexandr Sojka",
+      "Patrik Schick",
+      "Pavel Sulc"
+    ],
+    "bench": [
+      "David Zima",
+      "Tomas Holes",
+      "Vladimír Darida",
+      "Adam Hlozek",
+      "Jan Kuchta",
+      "Lukas Cerv",
+      "Mojmír Chytil",
+      "David Jurásek",
+      "Jindrich Stanek",
+      "Michal Sadílek",
+      "Tomas Chory",
+      "David Doudera",
+      "Lukas Hornicek",
+      "Hugo Sochurek",
+      "Denis Visinsky"
     ]
   },
   "DR Congo": {
@@ -672,52 +707,71 @@
     ]
   },
   "South Africa": {
-    "source": "Confirmed XI vs Mexico (Jun 11 2026, 5-3-2)",
+    "source": "FotMob confirmed (2026-06-14 18:28 UTC)",
+    "formation": "5-3-2",
     "starters": [
       "Ronwen Williams",
-      "Aubrey Modiba",
-      "Mbekezeli Mbokazi",
       "Nkosinathi Sibisi",
-      "Khuliso Mudau",
       "Ime Okon",
+      "Mbekezeli Mbokazi",
+      "Khuliso Mudau",
+      "Aubrey Maphosa Modiba",
       "Teboho Mokoena",
-      "Yaya Sithole",
+      "Sphephelo Sithole",
       "Jayden Adams",
-      "Lyle Foster",
-      "Iqraam Rayners"
+      "Iqraam Rayners",
+      "Lyle Foster"
     ],
     "bench": [
-      "Thabang Matuludi",
-      "Khulumani Ndamane",
       "Thalente Mbatha",
-      "Oswin Appollis",
-      "Tshepang Moremi",
-      "Relebohile Mofokeng",
       "Themba Zwane",
-      "Thapelo Maseko",
-      "Sipho Chaine",
       "Evidence Makgopa",
-      "Samukele Kabini",
+      "Oswin Appollis",
       "Ricardo Goss",
-      "Olwethu Makhanya",
+      "Sipho Chaine",
+      "Bradley Cross",
       "Kamogelo Sebelebele",
-      "Bradley Cross"
+      "Khulumani Ndamane",
+      "Olwethu Makhanya",
+      "Samukelo Kabini",
+      "Thabang Matuludi",
+      "Relebohile Mofokeng",
+      "Thapelo Maseko",
+      "Tshepang Moremi"
     ]
   },
   "Sweden": {
-    "source": "Goal.com probable XI",
+    "source": "FotMob confirmed (2026-06-14 18:28 UTC)",
+    "formation": "3-4-1-2",
     "starters": [
-      "Nordfeldt",
-      "Starfelt",
-      "Lagerbielke",
-      "Lindelof",
-      "Svensson",
-      "Karlstrom",
-      "Ayari",
-      "Gudmundsson",
-      "Nygren",
-      "Elanga",
-      "Gyokeres"
+      "Kristoffer Nordfeldt",
+      "Gustaf Lagerbielke",
+      "Isak Hien",
+      "Victor Nilsson Lindelöf",
+      "Alexander Bernhardsson",
+      "Jesper Karlström",
+      "Yasin Ayari",
+      "Gabriel Gudmundsson",
+      "Benjamin Nygren",
+      "Viktor Gyökeres",
+      "Alexander Isak"
+    ],
+    "bench": [
+      "Jacob Widell Zetterström",
+      "Viktor Johansson",
+      "Carl Starfelt",
+      "Eric Smith",
+      "Hjalmar Ekdal",
+      "Besfort Zeneli",
+      "Daniel Svensson",
+      "Elliot Stroud",
+      "Herman Johansson",
+      "Ken Sema",
+      "Lucas Bergvall",
+      "Mattias Svanberg",
+      "Taha Abdi Ali",
+      "Anthony Elanga",
+      "Gustaf Nilsson"
     ]
   },
   "Switzerland": {
@@ -737,19 +791,37 @@
     ]
   },
   "Tunisia": {
-    "source": "Goal.com probable XI",
+    "source": "FotMob confirmed (2026-06-14 18:28 UTC)",
+    "formation": "4-2-3-1",
     "starters": [
-      "Dahmen",
-      "Valery",
-      "Bronn",
-      "Talbi",
-      "Abdi",
-      "Gharbi",
-      "Skhiri",
-      "Hannibal",
-      "Achouri",
-      "Mastouri",
-      "Tounekti"
+      "Abdelmouhib Chamakh",
+      "Yan Valery",
+      "Montassar Talbi",
+      "Omar Rekik",
+      "Amine Ben Hamida",
+      "Rani Khedira",
+      "Ellyes Skhiri",
+      "Anis Ben Slimane",
+      "Hannibal Mejbri",
+      "Ali Abdi",
+      "Elias Saad"
+    ],
+    "bench": [
+      "Aymen Dahmen",
+      "Sabri Ben Hessen",
+      "Adem Arous",
+      "Dylan Bronn",
+      "Moutaz Neffati",
+      "Raed Chikhaoui",
+      "Elias Achouri",
+      "Hadj Mahmoud",
+      "Ismaël Gharbi",
+      "Khalil Ayari",
+      "Firas Chaouat",
+      "Hazem Mastouri",
+      "Mortadha Ben Ouanes",
+      "Rayan Elloumi",
+      "Sebastian Tounekti"
     ]
   },
   "Turkey": {

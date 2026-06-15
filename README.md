@@ -12,20 +12,21 @@ A Python framework for predicting **FIFA World Cup 2026** match outcomes, simula
 
 1. [What this project does](#what-this-project-does)
 2. [Installation & usage guide](#installation--usage-guide)
-3. [Project folder layout](#project-folder-layout)
-4. [Pipeline (8 steps)](#pipeline-8-steps)
-5. [Model methodology](#model-methodology)
-6. [Data sources](#data-sources)
-7. [Configuration](#configuration)
-8. [Output files](#output-files)
-9. [Prediction markets & betting workflow](#prediction-markets--betting-workflow)
-10. [Backtest (2018 & 2022)](#backtest-2018--2022)
-11. [HTML report](#html-report)
-12. [Maintenance & refreshing data](#maintenance--refreshing-data)
-13. [Troubleshooting](#troubleshooting)
-14. [Known limitations](#known-limitations)
-15. [Architecture overview](#architecture-overview)
-16. [License & attribution](#license--attribution)
+3. [What's in Git vs created locally](#whats-in-git-vs-created-locally)
+4. [Project folder layout](#project-folder-layout)
+5. [Pipeline (8 steps)](#pipeline-8-steps)
+6. [Model methodology](#model-methodology)
+7. [Data sources](#data-sources)
+8. [Configuration](#configuration)
+9. [Output files](#output-files)
+10. [Prediction markets & betting workflow](#prediction-markets--betting-workflow)
+11. [Backtest (2018 & 2022)](#backtest-2018--2022)
+12. [HTML report](#html-report)
+13. [Maintenance & refreshing data](#maintenance--refreshing-data)
+14. [Troubleshooting](#troubleshooting)
+15. [Known limitations](#known-limitations)
+16. [Architecture overview](#architecture-overview)
+17. [License & attribution](#license--attribution)
 
 ---
 
@@ -40,6 +41,8 @@ A Python framework for predicting **FIFA World Cup 2026** match outcomes, simula
 | **Tournament simulation** | 10,000 Monte Carlo runs of the full 48-team bracket (groups → R32 → final) |
 | **Backtest** | Point-in-time validation on 2018 & 2022 World Cup group stages |
 | **HTML dashboard** | Self-contained `wc2026_report.html` with all outputs |
+| **Live mode** | Fast refresh: Elo, Polymarket odds, FotMob lineups, bet slip (~30–60s) |
+| **Pre-kickoff scheduler** | Auto-run live pipeline 60 min before each match (Windows Task Scheduler or daemon) |
 
 The tournament format modelled: **12 groups of 4**, top 2 advance plus **8 best third-place** teams → 32-team knockout bracket.
 
@@ -186,17 +189,19 @@ Without market prices, you still get match predictions and tournament simulation
 
 ### Step 7 — Match-day workflow (before placing bets)
 
-Do this **on the day of matches**, ideally 1–2 hours before kickoff:
+**Recommended (automated):** install the pre-kickoff scheduler once — it runs `--live` 60 minutes before each match (lineups + odds + predictions). See [Pre-kickoff scheduler](#pre-kickoff-scheduler-auto-t-60-min).
+
+**Manual alternative:**
 
 ```
-1. Update market_odds.csv     ← fresh Polymarket / bookmaker prices
-2. (Optional) Edit expected_lineups.json if injuries changed
-3. Run: python wc2026_simulation.py
-4. Open wc2026_bet_slip.csv or the "Bet Slip" section in wc2026_report.html
-5. Check team news / confirmed lineups
-6. Place only BET-tier picks at full stake; LEAN at half or skip
-7. Log each wager in paper_trade_log.csv
+1. Run: python wc2026_simulation.py --live     ← refreshes odds, lineups, Elo
+2. Open wc2026_bet_slip.csv or wc2026_live_report.html
+3. Check team news / confirmed lineups
+4. Place only BET-tier picks at full stake; LEAN at half or skip
+5. Log each wager in paper_trade_log.csv
 ```
+
+`--live` auto-fetches Polymarket prices (next 7 days) and FotMob confirmed XIs (within ~3 h of kickoff). You can still edit `market_odds.csv` or `expected_lineups.json` by hand if needed.
 
 **Bet tiers (printed in terminal and bet slip):**
 
@@ -230,11 +235,65 @@ This file stays on your machine only (not pushed to GitHub).
 
 | When | What to do |
 |------|------------|
-| **Before each matchday** | Update `market_odds.csv`, run the script |
-| **After WC matches finish** | Delete `international_results.csv`, re-run (re-downloads latest results) |
+| **Before each matchday (fast)** | `python wc2026_simulation.py --live` (~30–60s) |
+| **Auto lineups + schedule** | `python wc2026_scheduler.py install` (see below) |
+| **Before each matchday** | Update `expected_lineups.json` if lineups changed |
+| **Full champion / group odds** | `python wc2026_simulation.py` (no flags, ~3 min) |
+| **Polymarket only** | `python wc2026_simulation.py --fetch-odds` |
+| **Force fresh match results** | `python wc2026_simulation.py --refresh-data` |
+| **After WC matches finish** | `--live` or `--refresh-data` re-downloads match CSV |
 | **New Transfermarkt values** | Delete `squad_market_values.json` and `squad_xi_values.json`, re-run |
 | **Lineup changes** | Edit `expected_lineups.json`, re-run |
 | **Pull repo updates** | `git pull` then re-run |
+
+### Live mode (`--live`)
+
+```powershell
+$env:PYTHONIOENCODING='utf-8'
+python wc2026_simulation.py --live
+```
+
+- Re-downloads match results (updates Elo when games finish)
+- Auto-fetches Polymarket odds for next 7 days
+- Auto-fetches confirmed lineups from FotMob (within ~3 h of kickoff)
+- Skips backtest + Monte Carlo → outputs `wc2026_live_report.html` + bet slip
+
+Use `--fetch-lineups` alone to refresh `expected_lineups.json` without running the full live pipeline.
+
+### Pre-kickoff scheduler (auto T-60 min)
+
+`wc2026_scheduler.py` runs the live pipeline **60 minutes before each match**:
+FotMob confirmed lineups → updated predictions → bet slip.
+
+**One-time setup (Windows)**
+
+```powershell
+$env:PYTHONIOENCODING='utf-8'
+.\install_scheduler.ps1
+```
+
+Or manually:
+
+```powershell
+python wc2026_scheduler.py refresh    # cache FotMob kickoff times + match IDs
+python wc2026_scheduler.py install    # create one Task Scheduler job per match
+```
+
+**Commands**
+
+| Command | Purpose |
+|---------|---------|
+| `refresh` | Download WC fixture schedule → `wc2026_fixture_schedule.json` |
+| `install` | Windows Task Scheduler: run at kickoff − 60 min (local time) |
+| `uninstall` | Remove all `WC2026_PreKickoff_*` tasks |
+| `prekickoff --match-id ID` | Fetch lineups + run `--live` for one match |
+| `daemon` | Poll every 5 min and trigger T-60 runs (macOS/Linux or no admin) |
+
+**Notes**
+
+- FotMob usually publishes confirmed XIs ~75 minutes before kickoff; the scheduler targets T-60.
+- Re-run `install` after the schedule changes (e.g. knockout draw) to add new tasks.
+- On macOS/Linux, use `python wc2026_scheduler.py daemon` and keep the terminal open.
 
 ---
 
@@ -264,12 +323,79 @@ open wc2026_report.html    # macOS
 
 ---
 
-## Project folder layout
+## What's in Git vs created locally
+
+After `git clone`, you get **source code + starter data**. Everything else is downloaded or generated on **your machine** the first time you run the script.
+
+### Included in the repository
+
+| File | Purpose |
+|------|---------|
+| `wc2026_simulation.py` | Main pipeline |
+| `wc2026_scheduler.py` | Pre-kickoff automation (FotMob + Task Scheduler) |
+| `install_scheduler.ps1` | One-click Windows scheduler setup |
+| `requirements.txt` | Python dependencies |
+| `expected_lineups.json` | Starter projected XIs for all 48 teams (updated over time via FotMob or manual edits) |
+| `market_odds.csv` | Sample Polymarket prices — enough to demo value bets; refreshed automatically in `--live` mode |
+| `README.md`, `LICENSE`, `.gitignore` | Docs and license |
+
+### Created on first run (not in Git — listed in `.gitignore`)
+
+| File | How it appears |
+|------|----------------|
+| `international_results.csv` | Auto-downloaded from GitHub (~49k matches) |
+| `squad_lists.pdf` | Auto-downloaded from FIFA |
+| `squad_market_values.json` | Scraped from Transfermarkt (slow; cached) |
+| `squad_xi_values.json` | Scraped from Transfermarkt per-player pages (slow; cached) |
+| `wc2026_report.html` | Full-run HTML dashboard |
+| `wc2026_live_report.html` | Live-mode HTML dashboard |
+| `wc2026_match_predictions.csv` | Match probabilities |
+| `wc2026_value_bets.csv` | Fair odds vs market |
+| `wc2026_bet_slip.csv` | BET / LEAN recommendations |
+| `wc2026_backtest.csv` | 2018 & 2022 validation |
+
+**First full run needs internet** and takes ~2–5 minutes while caches are built. Later runs are faster.
+
+### Created when you use the scheduler (not in Git)
+
+| File | How it appears |
+|------|----------------|
+| `wc2026_fixture_schedule.json` | `python wc2026_scheduler.py refresh` — FotMob match IDs + UTC kickoffs |
+| `wc2026_scheduler_state.json` | Written by `daemon` mode to avoid duplicate triggers |
+
+### Personal / optional (not in Git)
+
+| File | Notes |
+|------|-------|
+| `paper_trade_log.csv` | Created when you log bets; stays on your machine only |
+
+### What a new clone does *not* need to set up manually
+
+- Python packages → `pip install -r requirements.txt`
+- Match history, FIFA squads, Transfermarkt values → first `python wc2026_simulation.py`
+- Polymarket odds for upcoming games → `python wc2026_simulation.py --live` (or included sample CSV for demo)
+- Confirmed lineups near kickoff → `--live` / scheduler pulls from FotMob
+
+### Optional one-time setup (your environment)
+
+| Goal | Action |
+|------|--------|
+| **Auto T-60 runs (Windows)** | `.\install_scheduler.ps1` (needs Task Scheduler access; uses your local Python path) |
+| **Auto T-60 runs (macOS/Linux)** | `python wc2026_scheduler.py daemon` (keep terminal open) |
+| **Custom market prices** | Edit `market_odds.csv` if not using `--live` auto-fetch |
+| **Override lineups** | Edit `expected_lineups.json` before a run |
+| **UTF-8 on Windows** | `$env:PYTHONIOENCODING='utf-8'` in PowerShell (or set permanently in your profile) |
+
+No API keys, accounts, or secrets are required — FotMob and Polymarket Gamma API are used without authentication.
+
+---
 
 ```
 Fifa 2026 World Cup Prediction/
 │
 ├── wc2026_simulation.py      # Main script — entire pipeline (~3,100 lines)
+├── wc2026_scheduler.py       # Pre-kickoff scheduler (FotMob + Task Scheduler)
+├── install_scheduler.ps1     # One-click Windows scheduler install
 ├── README.md                 # This file
 ├── LICENSE                   # MIT License
 ├── requirements.txt          # Python dependencies
@@ -279,23 +405,32 @@ Fifa 2026 World Cup Prediction/
 ├── squad_lists.pdf           # FIFA official squad lists (auto-downloaded)
 ├── squad_market_values.json  # Cached Transfermarkt full-squad € values
 ├── squad_xi_values.json      # Cached per-player values + XI totals
-├── expected_lineups.json     # Projected starting XIs (ESPN + Goal.com)
-├── market_odds.csv           # YOUR market prices (Polymarket / bookmaker)
+├── expected_lineups.json     # Projected / confirmed starting XIs (in repo; FotMob updates locally)
+├── market_odds.csv           # Sample Polymarket prices (in repo; auto-updated in --live)
 │
-├── ── GENERATED OUTPUTS ───────────────────────────────────────────
-├── wc2026_report.html        # Self-contained HTML dashboard
+├── ── AUTO-DOWNLOADED CACHE (local only, .gitignore) ─────────────
+├── international_results.csv # ~49k international matches
+├── squad_lists.pdf           # FIFA official squad lists
+├── squad_market_values.json  # Transfermarkt full-squad € values
+├── squad_xi_values.json      # Per-player values + XI totals
+├── wc2026_fixture_schedule.json  # FotMob kickoff times (scheduler)
+├── wc2026_scheduler_state.json # Daemon trigger state
+│
+├── ── GENERATED OUTPUTS (local only, .gitignore) ─────────────────
+├── wc2026_report.html        # Full-run HTML dashboard
+├── wc2026_live_report.html   # Live-mode HTML dashboard
 ├── wc2026_match_predictions.csv
 ├── wc2026_value_bets.csv
 ├── wc2026_bet_slip.csv
 ├── wc2026_backtest.csv
-└── paper_trade_log.csv       # Manual log for tracking real bets
+└── paper_trade_log.csv       # Personal bet log (never committed)
 ```
 
 ### File-by-file reference
 
 #### `wc2026_simulation.py`
 
-The only source code file. Contains:
+Main pipeline script. Also includes live mode (`--live`), FotMob lineup fetch (`--fetch-lineups`), and Polymarket odds fetch (`--fetch-odds`). Contains:
 
 - Configuration constants (weights, thresholds, URLs)
 - Official 2026 group draw (`GROUPS` A–L, 48 teams)
@@ -307,6 +442,10 @@ The only source code file. Contains:
 - 2018/2022 backtest
 - HTML report generator
 - `main` entry point (`if __name__ == "__main__"`)
+
+#### `wc2026_scheduler.py`
+
+Companion script for pre-kickoff automation. Fetches FotMob fixture times, installs Windows Task Scheduler jobs at kickoff − 60 min, or runs as a polling daemon. Each trigger runs `wc2026_simulation.py --live`.
 
 #### `international_results.csv`
 
@@ -361,12 +500,13 @@ Projected starting elevens for all 48 teams. Structure per team:
 - **17 teams:** ESPN projected benches (starters = squad minus bench)
 - **31 teams:** Goal.com projections
 - Manual fixes applied where needed (e.g. Argentina GK, Senegal)
+- **FotMob confirmed XIs** merged automatically in `--live` mode or via the scheduler
 
-Edit this file when official lineups are announced or injuries change the XI.
+Edit this file when you want to override auto-fetched lineups or before kickoff if FotMob has not published yet.
 
-#### `market_odds.csv` *(user-maintained)*
+#### `market_odds.csv` *(starter in repo; refreshed in live mode)*
 
-Your prediction-market or bookmaker prices. **Required for value bets and bet slip.**
+Prediction-market or bookmaker prices for value bets and bet slip.
 
 | Column | Description |
 |--------|-------------|
@@ -499,8 +639,10 @@ Additional rules:
 | Squad lists | [FIFA SquadLists PDF](https://fdp.fifa.org/assetspublic/ce281/pdf/SquadLists-English.pdf) | `squad_lists.pdf` |
 | Squad market values | [Transfermarkt WC 2026](https://www.transfermarkt.com/weltmeisterschaft/teilnehmer/pokalwettbewerb/FIWC/saison_id/2025) | `squad_market_values.json` |
 | Player values | Transfermarkt per-player pages | `squad_xi_values.json` |
-| Expected lineups | ESPN + Goal.com (manual curation) | `expected_lineups.json` |
-| Market prices | **You** (Polymarket screenshots / API) | `market_odds.csv` |
+| Expected lineups | ESPN + Goal.com (repo) + FotMob (live) | `expected_lineups.json` |
+| Market prices | Polymarket Gamma API (`--live`) or manual edit | `market_odds.csv` |
+| Fixture times / match IDs | FotMob API | `wc2026_fixture_schedule.json` |
+| Confirmed lineups (match day) | FotMob API | merged into `expected_lineups.json` |
 
 ---
 
@@ -584,10 +726,9 @@ No server required — double-click to open.
 
 ### Before match day
 
-1. Update **`market_odds.csv`** with fresh Polymarket prices
-2. Update **`expected_lineups.json`** if injuries or team news changed
-3. Run the script
-4. Read **`wc2026_bet_slip.csv`** or the Bet Slip section in the HTML report
+1. **Easiest:** `python wc2026_simulation.py --live` (or let the scheduler run it at T-60)
+2. Or edit **`market_odds.csv`** / **`expected_lineups.json`** manually, then run the script
+3. Read **`wc2026_bet_slip.csv`** or the Bet Slip section in the HTML report
 
 ### Pre-bet checklist (printed in terminal)
 
@@ -654,11 +795,15 @@ Dark-themed, single-page report with sticky navigation. Regenerated every run. S
 
 | Goal | Action |
 |------|--------|
-| Fresh match results | Delete `international_results.csv`, re-run |
+| Fresh match results | `python wc2026_simulation.py --refresh-data` or delete `international_results.csv` |
+| Fresh Polymarket odds | `python wc2026_simulation.py --live` or `--fetch-odds` |
+| Fresh FotMob lineups | `python wc2026_simulation.py --live` or `--fetch-lineups` |
 | Re-scrape Transfermarkt | Delete `squad_market_values.json` and `squad_xi_values.json` |
 | Re-download FIFA squads | Delete `squad_lists.pdf` |
-| Update lineups | Edit `expected_lineups.json` |
-| Update market prices | Edit `market_odds.csv` |
+| Refresh scheduler fixtures | `python wc2026_scheduler.py refresh` |
+| Re-install T-60 tasks | `python wc2026_scheduler.py install --force` |
+| Update lineups manually | Edit `expected_lineups.json` |
+| Update market prices manually | Edit `market_odds.csv` |
 | Reset bet tracking | Clear rows in `paper_trade_log.csv` (keep header) |
 
 After deleting caches, the next run will re-download/scrape (slower).
@@ -673,6 +818,13 @@ After deleting caches, the next run will re-download/scrape (slower).
 $env:PYTHONIOENCODING='utf-8'
 python wc2026_simulation.py
 ```
+
+### Scheduler tasks not created (Windows)
+
+- Run PowerShell as a user with permission to create scheduled tasks
+- Ensure `python` is on PATH (`python --version`)
+- Re-run: `python wc2026_scheduler.py install --force`
+- Alternative: `python wc2026_scheduler.py daemon` (no admin required)
 
 ### No value bets / empty bet slip
 
@@ -702,12 +854,13 @@ Delete `squad_xi_values.json` and re-run. A fix ensures only cells containing `�
 
 - **Not proven profitable** — backtest shows signal but negative simulated ROI at fair odds
 - **Squad/XI component untested** on historical World Cups
-- **No injury model** — update lineups manually
+- **No injury model** — FotMob lineups help near kickoff; check team news for late changes
 - **No line movement / closing line** tracking
 - **Host advantage** only for 2026 hosts (not Russia 2018, Qatar 2022 in backtest)
 - **Draw calibration** is weak
 - **Monte Carlo** uses same match engine as predictions but does not condition on group-stage results when simulating the full tournament from scratch each run
-- **market_odds.csv** is manual — no live Polymarket API integration yet
+- **Polymarket auto-fetch** covers ~7 days ahead; older or unlisted markets still need manual `market_odds.csv` rows
+- **Scheduler** uses your machine's local timezone and Python path — re-run `install` after moving the project folder
 
 ---
 
